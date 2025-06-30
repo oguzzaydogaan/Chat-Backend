@@ -53,15 +53,10 @@ namespace Repositories.Repositories
             return user;
         }
 
-        public async Task LoginAsync(string email, string password)
+        public async Task<User?> LoginAsync(string email)
         {
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
-            if (user == null)
-                throw new Exception("User not found.");
-
-            var result = _passwordHasher.VerifyHashedPassword(user, user.Password!, password);
-            if (result == PasswordVerificationResult.Failed)
-                throw new Exception("Invalid password.");
+            return user;
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Repositories.Entities;
 using Services;
@@ -7,6 +8,7 @@ namespace backend.Controllers
 {
     [Route("api/chats")]
     [ApiController]
+    [Authorize]
     public class ChatController : ControllerBase
     {
         public ChatController(ChatService chatService)

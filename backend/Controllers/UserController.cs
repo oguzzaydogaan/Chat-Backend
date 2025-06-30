@@ -1,5 +1,7 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Repositories.DTOs;
 using Repositories.Entities;
 using Services;
 
@@ -7,6 +9,7 @@ namespace backend.Controllers
 {
     [Route("api/users")]
     [ApiController]
+    [Authorize]
     public class UserController : ControllerBase
     {
         public UserController(UserService userService)
@@ -31,12 +34,27 @@ namespace backend.Controllers
             }
         }
 
-        [HttpGet("{userId}")]
+        [HttpGet("{userId}/chats")]
         public async Task<IActionResult> GetUsersChatsAsync(int userId)
         {
             try
             {              
                 return Ok(await _userService.GetUsersChatsAsync(userId));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+            }
+        }
+
+        [AllowAnonymous]
+        [HttpPost("login")]
+        public async Task<IActionResult> LoginAsync([FromBody] LoginRequestDTO loginRequest)
+        {
+            try
+            {
+                var response = await _userService.LoginAsync(loginRequest.Email!, loginRequest.Password!);
+                return Ok(response);
             }
             catch (Exception ex)
             {

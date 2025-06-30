@@ -1,21 +1,27 @@
-﻿using System;
+﻿using Microsoft.AspNetCore.Identity;
+using Repositories.DTOs;
+using Repositories.Entities;
+using Repositories.Repositories;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
-using Repositories.Entities;
-using Repositories.Repositories;
 
 namespace Services
 {
     public class UserService
     {
-        public UserService(UserRepository userRepository)
+        public UserService(UserRepository userRepository, PasswordHasher<User> passwordHasher, JwtService jwtService)
         {
             _userRepository = userRepository;
+            _passwordHasher = passwordHasher;
+            _jwtService = jwtService;
         }
         private readonly UserRepository _userRepository;
+        private readonly PasswordHasher<User> _passwordHasher;
+        private readonly JwtService _jwtService;
 
         public async Task<User?> GetUserByIdAsync(int userId)
         {
@@ -43,10 +49,17 @@ namespace Services
             return chats;
         }
 
-        public async Task LoginAsync(string email, string password)
+        public async Task<LoginResponseDTO> LoginAsync(string email, string password)
         {
-            await _userRepository.LoginAsync(email, password);
+            var user = await _userRepository.LoginAsync(email);
+            if (user == null)
+                throw new Exception("User not found.");
 
+            var result = _passwordHasher.VerifyHashedPassword(user, user.Password!, password);
+            if (result == PasswordVerificationResult.Failed)
+                throw new Exception("Invalid password.");
+
+            return _jwtService.Authenticate(user);
         }
     }
 }
