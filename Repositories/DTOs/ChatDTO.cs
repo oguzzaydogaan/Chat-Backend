@@ -15,6 +15,6 @@ namespace Repositories.DTOs
     public class ChatWithMessagesDTO
     {
         public string? Name { get; set; }
-        public List<MessageForChatDTO>? Messages { get; set; }
+        public ICollection<MessageForChatDTO>? Messages { get; set; }
     }
 }

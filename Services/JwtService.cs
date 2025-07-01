@@ -21,14 +21,15 @@ namespace Services
         }
         public LoginResponseDTO Authenticate(User user)
         {
-            var key = System.Text.Encoding.UTF8.GetBytes(_configuration["JwtConfig:Key"]!);
+            var key = Encoding.UTF8.GetBytes(_configuration["JwtConfig:Key"]!);
             var minutes = _configuration.GetValue<int>("JwtConfig:ExpirationInMinutes");
             var tokenExpiration = DateTime.UtcNow.AddMinutes(minutes);
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(new[]
                 {
-                        new Claim(JwtRegisteredClaimNames.Name, user.Email!)
+                        new Claim(JwtRegisteredClaimNames.Name, user.Email!),
+                        new Claim("Time",tokenExpiration.ToString())
                     }),
                 Expires = tokenExpiration,
                 Issuer = _configuration["JwtConfig:Issuer"],

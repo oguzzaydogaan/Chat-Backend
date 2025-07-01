@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Repositories.DTOs;
 using Repositories.Entities;
 using Repositories.Repositories;
 
@@ -21,7 +22,7 @@ namespace Services
             return await _chatRepository.AddChatAsync(userIds);
         }
 
-        public async Task<Object?> GetChatMessagesAsync(int chatId, int userId)
+        public async Task<ChatWithMessagesDTO?> GetChatMessagesAsync(int chatId, int userId)
         {
             var chat = await _chatRepository.GetChatMessagesAsync(chatId, userId);
             if (chat == null)

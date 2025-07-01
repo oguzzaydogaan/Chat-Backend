@@ -66,7 +66,7 @@ namespace Repositories.Repositories
                 throw new Exception("An error occurred while adding the user to the chat.", ex);
             }
         }
-        public async Task<Object?> GetChatMessagesAsync(int chatId, int userId)
+        public async Task<ChatWithMessagesDTO?> GetChatMessagesAsync(int chatId, int userId)
         {
             var chat = await _context.Chats
                 .Include(c => c.Users)
@@ -90,7 +90,11 @@ namespace Repositories.Repositories
                     .Where(u => u.Id != userId)
                     .Select(u => u.Name + ", "));
                 name = name.TrimEnd(',', ' ');
-                return new { name, messages };
+                return new ChatWithMessagesDTO
+                {
+                    Name = name,
+                    Messages = messages
+                };
             }
             catch (Exception ex)
             {
