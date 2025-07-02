@@ -38,7 +38,7 @@ namespace backend.Controllers
         public async Task<IActionResult> GetUsersChatsAsync(int userId)
         {
             try
-            {              
+            {
                 return Ok(await _userService.GetUsersChatsAsync(userId));
             }
             catch (Exception ex)

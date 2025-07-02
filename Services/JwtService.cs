@@ -26,11 +26,6 @@ namespace Services
             var tokenExpiration = DateTime.UtcNow.AddMinutes(minutes);
             var tokenDescriptor = new SecurityTokenDescriptor
             {
-                Subject = new ClaimsIdentity(new[]
-                {
-                        new Claim(JwtRegisteredClaimNames.Name, user.Email!),
-                        new Claim("Time",tokenExpiration.ToString())
-                    }),
                 Expires = tokenExpiration,
                 Issuer = _configuration["JwtConfig:Issuer"],
                 Audience = _configuration["JwtConfig:Audience"],
@@ -43,8 +38,10 @@ namespace Services
             var accessToken = tokenHandler.WriteToken(token);
             return new LoginResponseDTO
             {
-                Token = accessToken,
+
                 Id = user.Id,
+                Name = user.Name!.ToLower(),
+                Token = accessToken,
                 ExpiresIn = tokenExpiration
             };
         }
