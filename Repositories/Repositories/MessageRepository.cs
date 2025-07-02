@@ -40,16 +40,17 @@ namespace Repositories.Repositories
             }
         }
 
-        public async Task<bool> DeleteMessageAsync(int messageId)
+        public async Task<Message> DeleteMessageAsync(int messageId)
         {
             var message = await _context.Messages.FindAsync(messageId);
             if (message == null)
                 throw new Exception("Message not found.");
-            _context.Messages.Remove(message);
+            message.IsDeleted = true;
             try
             {
+                _context.Update(message);
                 await _context.SaveChangesAsync();
-                return true;
+                return message;
             }
             catch (DbUpdateException ex)
             {

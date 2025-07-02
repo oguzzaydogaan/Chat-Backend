@@ -17,7 +17,8 @@ namespace Repositories.Mappers
                 Id = message.Id,
                 Content = message.Content,
                 Time = message.Time,
-                Sender = message.User?.ToUserDTO()
+                Sender = message.User?.ToUserDTO(),
+                IsDeleted = message.IsDeleted
             };
         }
     }

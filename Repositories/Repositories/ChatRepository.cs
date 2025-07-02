@@ -52,7 +52,7 @@ namespace Repositories.Repositories
             if (user == null)
                 throw new Exception("Kullanıcı bulunamadı.");
             if (chat.Users.Any(u => u.Id == userId))
-                throw new Exception("Kullanıcı zaten bu chat'te mevcut.");          
+                throw new Exception("Kullanıcı zaten bu chat'te mevcut.");
 
             try
             {
@@ -81,7 +81,7 @@ namespace Repositories.Repositories
             try
             {
                 var messages = await _context.Messages
-                .Where(m => m.ChatId == chatId)
+                .Where(m => m.ChatId == chatId && m.IsDeleted == false)
                 .Include(m => m.User)
                 .OrderBy(m => m.Time)
                 .Select(m => m.ToMessageForChatDTO())

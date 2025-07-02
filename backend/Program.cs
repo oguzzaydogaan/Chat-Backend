@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Repositories.Repositories;
 using Services;
+using System.Collections.Concurrent;
 using System.Net.WebSockets;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -37,7 +38,7 @@ builder.Services.AddScoped<MessageRepository>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<ChatService>();
 builder.Services.AddScoped<MessageService>();
-builder.Services.AddSingleton<Dictionary<int, Dictionary<int, WebSocket>>>();
+builder.Services.AddSingleton<ConcurrentDictionary<int, ConcurrentDictionary<int, WebSocket>>>();
 
 builder.Services.AddCors(options =>
 {

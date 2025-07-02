@@ -9,6 +9,7 @@ using Repositories.DTOs;
 using Repositories.Entities;
 using Repositories.Mappers;
 using Services;
+using System.Collections.Concurrent;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net.WebSockets;
 using System.Text;
@@ -19,15 +20,13 @@ namespace backend.Controllers
     [Route("/ws/message")]
     public class WsMessage : ControllerBase
     {
-        public WsMessage(Dictionary<int, Dictionary<int, WebSocket>> clients, ChatService chatService, MessageService messageService, IOptionsMonitor<JwtBearerOptions> authenticationOptions)
+        public WsMessage(ConcurrentDictionary<int, ConcurrentDictionary<int, WebSocket>> clients, MessageService messageService, IOptionsMonitor<JwtBearerOptions> authenticationOptions)
         {
             _clients = clients;
-            _chatService = chatService;
             _messageService = messageService;
             _authenticationOptions = authenticationOptions;
         }
-        public static Dictionary<int, Dictionary<int, WebSocket>> _clients;
-        private readonly ChatService _chatService;
+        public ConcurrentDictionary<int, ConcurrentDictionary<int, WebSocket>> _clients;
         private readonly MessageService _messageService;
         private readonly IOptionsMonitor<JwtBearerOptions> _authenticationOptions;
         public async Task Get()
@@ -38,59 +37,92 @@ namespace backend.Controllers
                 int chatId = int.Parse(HttpContext.Request.Query["chatId"]!);
                 int userId = int.Parse(HttpContext.Request.Query["userId"]!);
                 string? token = HttpContext.Request.Query["accessToken"];
-
-                JwtSecurityTokenHandler jwtSecurityTokenHandler = new JwtSecurityTokenHandler();
-                var parameters = _authenticationOptions.Get(JwtBearerDefaults.AuthenticationScheme).TokenValidationParameters;
-                var x = jwtSecurityTokenHandler.ValidateToken(token, parameters, out SecurityToken validatedToken);
-                if (x == null && x?.Identity?.IsAuthenticated != true)
+                try
                 {
-                    await webSocket.CloseAsync(WebSocketCloseStatus.InternalServerError,"Yeni oturum gerekli.",CancellationToken.None);
+                    JwtSecurityTokenHandler jwtSecurityTokenHandler = new JwtSecurityTokenHandler();
+                    var parameters = _authenticationOptions.Get(JwtBearerDefaults.AuthenticationScheme).TokenValidationParameters;
+                    jwtSecurityTokenHandler.ValidateToken(token, parameters, out SecurityToken validatedToken);
+                    if (_clients == null)
+                        _clients = new();
+
+                    if (!_clients.ContainsKey(chatId))
+                        _clients[chatId] = new();
+
+                    if (_clients[chatId].ContainsKey(userId))
+                    {
+                        var oldSocket = _clients[chatId][userId];
+                        if (oldSocket.State == WebSocketState.Open)
+                            await oldSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Yeni bağlantı açıldı", CancellationToken.None);
+
+                        _clients[chatId][userId] = webSocket;
+                    }
+                    else
+                    {
+                        _clients[chatId].TryAdd(userId, webSocket);
+                    }
+
+                    await Echo(webSocket, _messageService, chatId, userId, validatedToken.ValidTo, _clients);
                 }
-                if (!_clients.ContainsKey(chatId))
+                catch (SecurityTokenException)
                 {
-                    _clients[chatId] = new Dictionary<int, WebSocket>();
+                    await webSocket.CloseAsync(
+                        WebSocketCloseStatus.PolicyViolation,
+                        "Token geçersiz.",
+                        CancellationToken.None);
+                }
+                catch
+                {
+                    await webSocket.CloseAsync(
+                        WebSocketCloseStatus.InternalServerError,
+                        "Bir hata oluştu",
+                        CancellationToken.None);
+                }
+            }
+        }
+        private static async Task Echo(WebSocket webSocket, MessageService _messageService, int chatId, int userId, DateTime validTime, ConcurrentDictionary<int, ConcurrentDictionary<int, WebSocket>> _clients)
+        {
+            var buffer = new byte[1024 * 4];
+            WebSocketReceiveResult receiveResult;
+
+            do
+            {
+                receiveResult = await webSocket.ReceiveAsync(
+                    new ArraySegment<byte>(buffer), CancellationToken.None);
+
+                if (validTime < DateTime.UtcNow)
+                {
+                    await webSocket.CloseAsync(
+                        WebSocketCloseStatus.PolicyViolation,
+                        "Token süresi doldu.",
+                        CancellationToken.None);
+                    if (_clients.TryGetValue(chatId, out var chatClients))
+                    {
+                        chatClients.TryRemove(userId, out _);
+
+                        if (chatClients.IsEmpty)
+                            _clients.TryRemove(chatId, out _);
+                    }
+                    return;
                 }
 
-                if (_clients[chatId].ContainsKey(userId))
+                var messageJson = Encoding.UTF8.GetString(buffer, 0, receiveResult.Count);
+                Message? message = null;
+                if (messageJson.Contains("delete/"))
                 {
-                    var oldSocket = _clients[chatId][userId];
-                    if (oldSocket.State == WebSocketState.Open)
-                        await oldSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Yeni bağlantı açıldı", CancellationToken.None);
-
-                    _clients[chatId][userId] = webSocket;
+                    int id = int.Parse(messageJson.Split("/")[1]);
+                    message = await _messageService.DeleteMessageAsync(id);
                 }
                 else
                 {
-                    _clients[chatId].Add(userId, webSocket);
-                }
+                    message = JsonSerializer.Deserialize<Message>(messageJson);
 
-                await Echo(webSocket, _messageService, chatId, userId, validatedToken.ValidTo);
-            }
-            else
-            {
-                Console.WriteLine("Bu endpoint sadece WebSocket istekleri için kullanılabilir.");
-            }
-        }
-        private static async Task Echo(WebSocket webSocket, MessageService _messageService, int chatId, int userId, DateTime validTime)
-        {
-            var buffer = new byte[1024 * 4];
-            var receiveResult = await webSocket.ReceiveAsync(
-                new ArraySegment<byte>(buffer), CancellationToken.None);
-
-            while (!receiveResult.CloseStatus.HasValue)
-            {
-                if (validTime < DateTime.UtcNow)
-                {
-                    break;
-                }
-                var messageJson = Encoding.UTF8.GetString(buffer, 0, receiveResult.Count);
-                var message = JsonSerializer.Deserialize<Message>(messageJson);
-
-                if (message != null)
-                    await _messageService.AddMessageAsync(message);
+                    if (message != null)
+                        await _messageService.AddMessageAsync(message);
+                }          
                 var newMessage = message!.ToMessageForChatDTO();
                 var json = JsonSerializer.Serialize(newMessage);
                 var bytes = Encoding.UTF8.GetBytes(json);
+
                 foreach (var ws in _clients[chatId].Values)
                 {
                     if (ws.State == WebSocketState.Open)
@@ -102,17 +134,21 @@ namespace backend.Controllers
                             CancellationToken.None);
                     }
                 }
-                receiveResult = await webSocket.ReceiveAsync(
-                    new ArraySegment<byte>(buffer), CancellationToken.None);
             }
+            while (!receiveResult.CloseStatus.HasValue);
 
             await webSocket.CloseAsync(
                 receiveResult.CloseStatus.Value,
                 receiveResult.CloseStatusDescription,
                 CancellationToken.None);
-            _clients[chatId].Remove(userId);
-            if (_clients[chatId].Count == 0)
-                _clients.Remove(chatId);
+
+            if (_clients.TryGetValue(chatId, out var chatClientsInner))
+            {
+                chatClientsInner.TryRemove(userId, out _);
+
+                if (chatClientsInner.IsEmpty)
+                    _clients.TryRemove(chatId, out _);
+            }
         }
     }
 }
