@@ -18,5 +18,6 @@ namespace Repositories.DTOs
         public DateTime Time { get; set; }
         public UserDTO? Sender { get; set; }
         public bool IsDeleted { get; set; }
+        public int ChatId { get; set; }
     }
 }

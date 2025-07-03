@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Any;
 using Repositories.DTOs;
 using Repositories.Entities;
 using Repositories.Mappers;
@@ -18,15 +19,15 @@ using System.Text.Json;
 namespace backend.Controllers
 {
     [Route("/ws/message")]
-    public class WsMessage : ControllerBase
+    public class WsMessageController : ControllerBase
     {
-        public WsMessage(ConcurrentDictionary<int, ConcurrentDictionary<int, WebSocket>> clients, MessageService messageService, IOptionsMonitor<JwtBearerOptions> authenticationOptions)
+        public WsMessageController(ConcurrentDictionary<int, WebSocket> clients, MessageService messageService, IOptionsMonitor<JwtBearerOptions> authenticationOptions)
         {
             _clients = clients;
             _messageService = messageService;
             _authenticationOptions = authenticationOptions;
         }
-        public ConcurrentDictionary<int, ConcurrentDictionary<int, WebSocket>> _clients;
+        public ConcurrentDictionary<int, WebSocket> _clients;
         private readonly MessageService _messageService;
         private readonly IOptionsMonitor<JwtBearerOptions> _authenticationOptions;
         public async Task Get()
@@ -34,7 +35,6 @@ namespace backend.Controllers
             if (HttpContext.WebSockets.IsWebSocketRequest)
             {
                 var webSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
-                int chatId = int.Parse(HttpContext.Request.Query["chatId"]!);
                 int userId = int.Parse(HttpContext.Request.Query["userId"]!);
                 string? token = HttpContext.Request.Query["accessToken"];
                 try
@@ -45,23 +45,19 @@ namespace backend.Controllers
                     if (_clients == null)
                         _clients = new();
 
-                    if (!_clients.ContainsKey(chatId))
-                        _clients[chatId] = new();
+                    else if (!_clients.ContainsKey(userId))
+                        _clients[userId] = webSocket;
 
-                    if (_clients[chatId].ContainsKey(userId))
+                    else
                     {
-                        var oldSocket = _clients[chatId][userId];
+                        var oldSocket = _clients[userId];
                         if (oldSocket.State == WebSocketState.Open)
                             await oldSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Yeni bağlantı açıldı", CancellationToken.None);
 
-                        _clients[chatId][userId] = webSocket;
-                    }
-                    else
-                    {
-                        _clients[chatId].TryAdd(userId, webSocket);
+                        _clients[userId] = webSocket;
                     }
 
-                    await Echo(webSocket, _messageService, chatId, userId, validatedToken.ValidTo, _clients);
+                    await Echo(webSocket, _messageService, userId, validatedToken.ValidTo, _clients);
                 }
                 catch (SecurityTokenException)
                 {
@@ -79,7 +75,7 @@ namespace backend.Controllers
                 }
             }
         }
-        private static async Task Echo(WebSocket webSocket, MessageService _messageService, int chatId, int userId, DateTime validTime, ConcurrentDictionary<int, ConcurrentDictionary<int, WebSocket>> _clients)
+        private static async Task Echo(WebSocket webSocket, MessageService _messageService, int userId, DateTime validTime, ConcurrentDictionary<int, WebSocket> _clients)
         {
             var buffer = new byte[1024 * 4];
             WebSocketReceiveResult receiveResult;
@@ -95,35 +91,44 @@ namespace backend.Controllers
                         WebSocketCloseStatus.PolicyViolation,
                         "Token süresi doldu.",
                         CancellationToken.None);
-                    if (_clients.TryGetValue(chatId, out var chatClients))
+                    if (_clients.TryRemove(userId, out var socket))
                     {
-                        chatClients.TryRemove(userId, out _);
-
-                        if (chatClients.IsEmpty)
-                            _clients.TryRemove(chatId, out _);
+                        return;
                     }
-                    return;
+                    else
+                    {
+                        throw new Exception();
+                    }
                 }
 
-                var messageJson = Encoding.UTF8.GetString(buffer, 0, receiveResult.Count);
-                Message? message = null;
-                if (messageJson.Contains("delete/"))
+                var messageString = Encoding.UTF8.GetString(buffer, 0, receiveResult.Count);
+                ResponseSocketMessageDTO? socketMessage = new ResponseSocketMessageDTO();
+                Message msg = new Message();
+                SocketMessageDTO? messageJson = null;
+                messageJson = JsonSerializer.Deserialize<SocketMessageDTO>(messageString);
+                if (messageJson?.Type == "Send-Message")
                 {
-                    int id = int.Parse(messageJson.Split("/")[1]);
-                    message = await _messageService.DeleteMessageAsync(id);
+                    socketMessage.Type = "Send-Message";
+                    msg = await _messageService.AddMessageAsync(messageJson.Payload!.ToMessage()) ?? throw new Exception();
+                    socketMessage.Payload = msg.ToMessageForChatDTO();
                 }
                 else
                 {
-                    message = JsonSerializer.Deserialize<Message>(messageJson);
+                    if (messageJson != null)
+                    {
+                        int id = (int)messageJson!.Payload!.MessageID!;
+                        socketMessage.Type = "Delete-Message";
+                        msg = await _messageService.DeleteMessageAsync(id);
+                        socketMessage.Payload = msg.ToMessageForChatDTO();
+                    }
+                }
 
-                    if (message != null)
-                        await _messageService.AddMessageAsync(message);
-                }          
-                var newMessage = message!.ToMessageForChatDTO();
-                var json = JsonSerializer.Serialize(newMessage);
+
+                
+                var json = JsonSerializer.Serialize(socketMessage);
                 var bytes = Encoding.UTF8.GetBytes(json);
 
-                foreach (var ws in _clients[chatId].Values)
+                foreach (var ws in _clients.Values)
                 {
                     if (ws.State == WebSocketState.Open)
                     {
@@ -142,12 +147,9 @@ namespace backend.Controllers
                 receiveResult.CloseStatusDescription,
                 CancellationToken.None);
 
-            if (_clients.TryGetValue(chatId, out var chatClientsInner))
+            if (_clients.TryGetValue(userId, out var x))
             {
-                chatClientsInner.TryRemove(userId, out _);
 
-                if (chatClientsInner.IsEmpty)
-                    _clients.TryRemove(chatId, out _);
             }
         }
     }
