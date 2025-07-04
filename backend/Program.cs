@@ -38,7 +38,7 @@ builder.Services.AddScoped<MessageRepository>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<ChatService>();
 builder.Services.AddScoped<MessageService>();
-builder.Services.AddSingleton<ConcurrentDictionary<int, WebSocket>>();
+builder.Services.AddSingleton<WsManager>();
 
 builder.Services.AddCors(options =>
 {
