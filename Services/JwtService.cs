@@ -45,6 +45,8 @@ namespace Services
             var tokenHandler = new JwtSecurityTokenHandler();
             var token = tokenHandler.CreateToken(tokenDescriptor);
             var accessToken = tokenHandler.WriteToken(token);
+
+            Console.WriteLine("TEST");
             return new LoginResponseDTO
             {
                 Token = accessToken,
