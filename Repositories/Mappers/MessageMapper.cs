@@ -17,7 +17,30 @@ namespace Repositories.Mappers
                 Id = message.Id,
                 Content = message.Content,
                 Time = message.Time,
-                Sender = message.User?.ToUserDTO()
+                Sender = message.User?.ToUserDTO(),
+                IsDeleted = message.IsDeleted,
+                ChatId = message.ChatId,
+            };
+        }
+
+        public static RequestPayloadDTO ToPayloadDTO(this Message message)
+        {
+            return new RequestPayloadDTO
+            {
+                UserID = message.UserId,
+                ChatID = message.ChatId,
+                Content = message.Content,
+                MessageID = message.Id,
+            };
+        }
+
+        public static Message ToMessage(this RequestPayloadDTO payload)
+        {
+            return new Message
+            {
+                UserId = payload.UserID,
+                ChatId = payload.ChatID,
+                Content = payload.Content,
             };
         }
     }

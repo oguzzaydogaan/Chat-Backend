@@ -17,5 +17,7 @@ namespace Repositories.DTOs
         public string? Content { get; set; }
         public DateTime Time { get; set; }
         public UserDTO? Sender { get; set; }
+        public bool IsDeleted { get; set; }
+        public int ChatId { get; set; }
     }
 }

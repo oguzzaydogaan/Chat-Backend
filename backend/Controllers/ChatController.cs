@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Repositories.Entities;
 using Services;
+using System.Text.Json;
 
 namespace backend.Controllers
 {
@@ -24,7 +25,8 @@ namespace backend.Controllers
                 return BadRequest("Invalid chat ID.");
             try
             {
-                return Ok(await _chatService.GetChatMessagesAsync(chatId, userId));
+                var chat = await _chatService.GetChatMessagesAsync(chatId, userId);            
+                return Ok(JsonSerializer.Serialize(chat));
             }
             catch (Exception ex)
             {

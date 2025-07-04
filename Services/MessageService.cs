@@ -22,7 +22,7 @@ namespace Services
                 throw new ArgumentNullException("Message cannot be null.");
             return await _messageRepository.AddMessageAsync(message);
         }
-        public async Task<bool> DeleteMessageAsync(int messageId)
+        public async Task<Message> DeleteMessageAsync(int messageId)
         {
             return await _messageRepository.DeleteMessageAsync(messageId);
         }

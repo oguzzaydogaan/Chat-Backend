@@ -1,24 +1,24 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Repositories.DTOs;
 using Repositories.Entities;
-using System;
-using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
 using System.Security.Claims;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace Services
 {
     public class JwtService
     {
-        private readonly IConfiguration _configuration;
-        public JwtService(IConfiguration configuration)
+        public JwtService(IConfiguration configuration, IOptionsMonitor<JwtBearerOptions> authenticationOptions)
         {
             _configuration = configuration;
+            _authenticationOptions = authenticationOptions;
         }
+        private readonly IConfiguration _configuration;
+        private readonly IOptionsMonitor<JwtBearerOptions> _authenticationOptions;
         public LoginResponseDTO Authenticate(User user)
         {
             var key = Encoding.UTF8.GetBytes(_configuration["JwtConfig:Key"]!);
@@ -26,6 +26,11 @@ namespace Services
             var tokenExpiration = DateTime.UtcNow.AddMinutes(minutes);
             var tokenDescriptor = new SecurityTokenDescriptor
             {
+                Subject = new ClaimsIdentity(new[]
+                {
+                        new Claim("UserId", user.Id.ToString()),
+                        new Claim("UserName", user.Name!),
+                    }),
                 Expires = tokenExpiration,
                 Issuer = _configuration["JwtConfig:Issuer"],
                 Audience = _configuration["JwtConfig:Audience"],
@@ -38,12 +43,17 @@ namespace Services
             var accessToken = tokenHandler.WriteToken(token);
             return new LoginResponseDTO
             {
-
-                Id = user.Id,
-                Name = user.Name!.ToLower(),
                 Token = accessToken,
+                Id = user.Id,
                 ExpiresIn = tokenExpiration
             };
+        }
+        public SecurityToken Validate(string? token)
+        {
+            JwtSecurityTokenHandler jwtSecurityTokenHandler = new JwtSecurityTokenHandler();
+            var parameters = _authenticationOptions.Get(JwtBearerDefaults.AuthenticationScheme).TokenValidationParameters;
+            jwtSecurityTokenHandler.ValidateToken(token, parameters, out SecurityToken validatedToken);
+            return validatedToken;
         }
     }
 }
