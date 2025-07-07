@@ -16,11 +16,23 @@ namespace Services
         {
             if (message == null)
                 throw new ArgumentNullException("Message cannot be null.");
-            return await _messageRepository.AddMessageAsync(message);
+            await _messageRepository.AddMessageAsync(message);
+            var mWithUsers = new MessageWithUsersDTO
+            {
+                Users = message.Chat!.Users,
+                Message = message
+            };
+            return mWithUsers;
         }
         public async Task<MessageWithUsersDTO> DeleteMessageAsync(int messageId)
         {
-            return await _messageRepository.DeleteMessageAsync(messageId);
+            var message =  await _messageRepository.DeleteMessageAsync(messageId);
+            var mWithUsers = new MessageWithUsersDTO
+            {
+                Users = message.Chat!.Users,
+                Message = message
+            };
+            return mWithUsers;
         }
     }
 }
