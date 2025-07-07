@@ -16,25 +16,29 @@ namespace Services
         {
             if (Clients.ContainsKey(id))
             {
-                await RemoveClient(id);
+                await RemoveClient(id,"Another device connected.");
             }
             var clientWS = new WSClient(this, ws, _serviceScopeFactory);
             Clients.TryAdd(id, clientWS);
-            await clientWS.ListenClient(id, validTo);
+            try
+            {
+                await clientWS.ListenClient(id, validTo);
+            }
+            catch (Exception ex)
+            {
+                await RemoveClient(id, ex.Message);
+            }
+
         }
-        public async Task RemoveClient(int id)
+        public async Task RemoveClient(int id, string reason)
         {
             var client = Clients[id];
             if (client != null)
             {
-                await client.Close();
-                
+                await client.Close(reason);
+
                 Clients.TryRemove(id, out var _);
             }
         }
-
-
-
-        
     }
 }

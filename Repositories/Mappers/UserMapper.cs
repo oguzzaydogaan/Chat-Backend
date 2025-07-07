@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Repositories.DTOs;
+﻿using Repositories.DTOs;
 using Repositories.Entities;
 
 namespace Repositories.Mappers
@@ -24,6 +19,15 @@ namespace Repositories.Mappers
             {
                 Id = userDto.Id,
                 Name = userDto.Name
+            };
+        }
+        public static User RegisterRequestDTOToUser(this RegisterRequestDTO registerRequest)
+        {
+            return new User
+            {
+                Name = registerRequest.Name,
+                Email = registerRequest.Email,
+                Password = registerRequest.Password
             };
         }
     }
