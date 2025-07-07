@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Repositories.DTOs;
 using Repositories.Entities;
@@ -55,6 +54,21 @@ namespace backend.Controllers
             {
                 var response = await _userService.LoginAsync(loginRequest.Email!, loginRequest.Password!);
                 return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+            }
+        }
+
+        [AllowAnonymous]
+        [HttpPost("register")]
+        public async Task<IActionResult> RegisterAsync([FromBody] RegisterRequestDTO registerRequest)
+        {
+            try
+            {
+                await _userService.RegisterAsync(registerRequest);
+                return Ok();
             }
             catch (Exception ex)
             {

@@ -1,13 +1,9 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Repositories.DTOs;
 using Repositories.Entities;
+using Repositories.Mappers;
 using Repositories.Repositories;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Xml.Linq;
 
 namespace Services
 {
@@ -60,6 +56,21 @@ namespace Services
                 throw new Exception("Invalid password.");
 
             return _jwtService.Authenticate(user);
+        }
+
+        public async Task RegisterAsync(RegisterRequestDTO registerRequest)
+        {
+            try
+            {
+                await _userRepository.RegisterAsync(registerRequest.RegisterRequestDTOToUser());
+            }
+            catch (DbUpdateException)
+            {
+                throw new Exception("Database update error.");
+            }
+            catch(Exception ex) {
+                throw new Exception(ex.Message);
+            }
         }
     }
 }

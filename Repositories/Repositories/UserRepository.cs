@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Repositories.Entities;
 
@@ -57,6 +52,19 @@ namespace Repositories.Repositories
         {
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
             return user;
+        }
+
+        public async Task RegisterAsync(User user)
+        {
+            var isValid = await _context.Users.FirstOrDefaultAsync(u => u.Email == user.Email) == null ? true : false;
+            if (isValid)
+            {
+                user.Password = _passwordHasher.HashPassword(user, user.Password!);
+                await _context.Users.AddAsync(user);
+                await _context.SaveChangesAsync();
+                return;
+            }
+            throw new Exception("This email already taken.");
         }
     }
 }
