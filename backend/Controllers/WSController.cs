@@ -5,17 +5,15 @@ using System.IdentityModel.Tokens.Jwt;
 namespace backend.Controllers
 {
     [Route("/ws/message")]
-    public class WsMessageController : ControllerBase
+    public class WSController : ControllerBase
     {
-        public WsMessageController(JwtService jwtService, WSClientListManager wsManager, MessageService messageService)
+        public WSController(JwtService jwtService, WSClientListManager wsClientListManager)
         {
             _jwtService = jwtService;
-            _wsManager = wsManager;
-            _messageService = messageService;
+            _wsClientListManager = wsClientListManager;
         }
         private readonly JwtService _jwtService;
-        private readonly WSClientListManager _wsManager;
-        private readonly MessageService _messageService;
+        private readonly WSClientListManager _wsClientListManager;
 
         public async Task Get()
         {
@@ -27,7 +25,7 @@ namespace backend.Controllers
                 var validatedToken = _jwtService.Validate(token) as JwtSecurityToken;
                 int id = int.Parse(validatedToken!.Claims.FirstOrDefault(c => c.Type == "UserId")!.Value);
 
-                await _wsManager.AddClient(id, webSocket, validatedToken.ValidTo, _messageService);
+                await _wsClientListManager.AddClient(id, webSocket, validatedToken.ValidTo);
             }
         }
     }

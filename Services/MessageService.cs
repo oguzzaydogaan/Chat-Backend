@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Repositories.DTOs;
 using Repositories.Entities;
 using Repositories.Repositories;
 
@@ -16,13 +12,13 @@ namespace Services
         }
         private readonly MessageRepository _messageRepository;
 
-        public async Task<Message?> AddMessageAsync(Message message)
+        public async Task<MessageWithUsersDTO> AddMessageAsync(Message message)
         {
             if (message == null)
                 throw new ArgumentNullException("Message cannot be null.");
             return await _messageRepository.AddMessageAsync(message);
         }
-        public async Task<Message> DeleteMessageAsync(int messageId)
+        public async Task<MessageWithUsersDTO> DeleteMessageAsync(int messageId)
         {
             return await _messageRepository.DeleteMessageAsync(messageId);
         }

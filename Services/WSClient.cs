@@ -1,4 +1,5 @@
-﻿using Repositories.DTOs;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Repositories.DTOs;
 using Repositories.Entities;
 using Repositories.Mappers;
 using System.Net.WebSockets;
@@ -9,15 +10,15 @@ namespace Services
 {
     public class WSClient
     {
-        private MessageService _messageService;
-        private WSClientListManager _wsManager;
+        private WSClientListManager _wsClientListManager;
         private readonly WebSocket _client;
+        private readonly IServiceScopeFactory _serviceScopeFactory;
 
-        public WSClient(WSClientListManager wsManager, WebSocket client, MessageService messageService)
+        public WSClient(WSClientListManager wsClientListManager, WebSocket client, IServiceScopeFactory serviceScopeFactory)
         {
-            _messageService = messageService;
-            _wsManager = wsManager;
+            _wsClientListManager = wsClientListManager;
             _client = client;
+            _serviceScopeFactory = serviceScopeFactory;
         }
         public async Task ListenClient(int id, DateTime validTo)
         {
@@ -30,55 +31,66 @@ namespace Services
                     new ArraySegment<byte>(buffer), CancellationToken.None);
                 if (validTo < DateTime.UtcNow)
                 {
-                    await _wsManager.RemoveClient(id);
+                    await _wsClientListManager.RemoveClient(id);
                 }
-                var bytes = await ConvertRequest(buffer, receiveResult);
-                await SendMessageToClients(bytes);
+                var info = await ConvertRequest(buffer, receiveResult)
+                ;
+                await SendMessageToClients(info.Bytes, info.Users);
             }
             while (!receiveResult.CloseStatus.HasValue);
 
-            await _wsManager.RemoveClient(id);
+            await _wsClientListManager.RemoveClient(id);
 
         }
 
-        public async Task<byte[]> ConvertRequest(byte[] buffer, WebSocketReceiveResult receiveResult)
+        public async Task<BytesWithUsersDTO> ConvertRequest(byte[] buffer, WebSocketReceiveResult receiveResult)
         {
-            var messageString = Encoding.UTF8.GetString(buffer, 0, receiveResult.Count);
-            SocketMessageDTO? messageJson = JsonSerializer.Deserialize<SocketMessageDTO>(messageString);
-            ResponseSocketMessageDTO? socketMessage = new ResponseSocketMessageDTO();
-            Message msg;
-            if (messageJson?.Type == "Send-Message")
+            using (var serviceScope = _serviceScopeFactory.CreateScope())
             {
-                socketMessage.Type = "Send-Message";
-                msg = await _messageService.AddMessageAsync(messageJson.Payload!.ToMessage()) ?? throw new Exception();
-                socketMessage.Payload = msg.ToMessageForChatDTO();
-            }
-            else
-            {
-                if (messageJson != null)
+                var messageService = serviceScope.ServiceProvider.GetService<MessageService>();
+                var messageString = Encoding.UTF8.GetString(buffer, 0, receiveResult.Count);
+                SocketMessageDTO messageJson = JsonSerializer.Deserialize<SocketMessageDTO>(messageString);
+                ResponseSocketMessageDTO socketMessage = new ResponseSocketMessageDTO();
+                MessageWithUsersDTO mWithUsers = new MessageWithUsersDTO();
+
+                if (messageJson?.Type == "Send-Message")
                 {
-                    int mid = (int)messageJson!.Payload!.MessageID!;
-                    socketMessage.Type = "Delete-Message";
-                    msg = await _messageService.DeleteMessageAsync(mid);
-                    socketMessage.Payload = msg.ToMessageForChatDTO();
+                    socketMessage.Type = "Send-Message";
+                    mWithUsers = await messageService.AddMessageAsync(messageJson.Payload!.ToMessage()) ?? throw new Exception();
+                    socketMessage.Payload = mWithUsers.Message.ToMessageForChatDTO();
                 }
+                else
+                {
+                    if (messageJson != null)
+                    {
+                        int mid = (int)messageJson!.Payload!.MessageID!;
+                        socketMessage.Type = "Delete-Message";
+                        mWithUsers = await messageService.DeleteMessageAsync(mid);
+                        socketMessage.Payload = mWithUsers.Message.ToMessageForChatDTO();
+                    }
+                }
+
+                var json = JsonSerializer.Serialize(socketMessage);
+                var bytes = Encoding.UTF8.GetBytes(json);
+                return new BytesWithUsersDTO { Bytes = bytes, Users = mWithUsers.Users };
             }
-            var json = JsonSerializer.Serialize(socketMessage);
-            var bytes = Encoding.UTF8.GetBytes(json);
-            return bytes;
         }
 
-        public async Task SendMessageToClients(byte[] bytes)
+        public async Task SendMessageToClients(byte[] bytes, ICollection<User> users)
         {
-            foreach (var ws in _wsManager.Clients.Values)//TODO add filter for message owners
+            foreach (var user in users)//TODO add filter for message owners
             {
-                if (ws._client.State == WebSocketState.Open)
+                _wsClientListManager.Clients.TryGetValue(user.Id, out var ws);
+                if (ws != null)
                 {
-                    await ws._client.SendAsync(
-                        new ArraySegment<byte>(bytes),
-                        WebSocketMessageType.Text,
-                        true,
-                        CancellationToken.None);
+                    if (ws._client.State == WebSocketState.Open)
+                    {
+                        await ws._client.SendAsync(
+                            new ArraySegment<byte>(bytes),
+                            WebSocketMessageType.Text,
+                            true,
+                            CancellationToken.None);
+                    }
                 }
             }
         }
