@@ -52,8 +52,13 @@ namespace Services
         {
             using var serviceScope = _serviceScopeFactory.CreateScope();
             var messageService = serviceScope.ServiceProvider.GetService<MessageService>();
+            var chatService = serviceScope.ServiceProvider.GetService<ChatService>();
+            if (messageService == null || chatService==null)
+            {
+                return null;
+            }
             var messageString = Encoding.UTF8.GetString(buffer, 0, receiveResult.Count);
-            SocketMessageDTO? messageJson = JsonSerializer.Deserialize<SocketMessageDTO>(messageString);
+            RequestSocketMessageDTO? messageJson = JsonSerializer.Deserialize<RequestSocketMessageDTO>(messageString);
             if (string.IsNullOrEmpty(messageJson?.ToString()))
             {
                 return null;
@@ -65,14 +70,29 @@ namespace Services
             {
                 socketMessage.Type = "Send-Message";
                 mWithUsers = await messageService!.AddMessageAsync(messageJson.Payload!.ToMessage());
-                socketMessage.Payload = mWithUsers.Message!.ToMessageForChatDTO();
+                socketMessage.Payload.Message = mWithUsers.Message!.ToMessageForChatDTO();
             }
             else if (messageJson?.Type == "Delete-Message")
             {
-                int mid = (int)messageJson!.Payload!.MessageID!;
+                int mid = (int)messageJson!.Payload!.MessageId!;
                 socketMessage.Type = "Delete-Message";
                 mWithUsers = await messageService!.DeleteMessageAsync(mid);
-                socketMessage.Payload = mWithUsers.Message!.ToMessageForChatDTO();
+                socketMessage.Payload.Message = mWithUsers.Message!.ToMessageForChatDTO();
+            }
+            else if (messageJson?.Type == "New-Chat")
+            {
+                socketMessage.Type = "New-Chat";
+                if (messageJson.Payload.UserIds == null)
+                {
+                    return null;
+                }
+                var chat = await chatService.AddChatAsync(messageJson.Payload.UserIds);
+                if (chat == null)
+                {
+                    return null;
+                }
+                mWithUsers.Users = chat.Users;
+                socketMessage.Payload.Chat = chat.EntityToChatDTO();
             }
 
             var json = JsonSerializer.Serialize(socketMessage);

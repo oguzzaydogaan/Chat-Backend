@@ -38,7 +38,8 @@ namespace backend.Controllers
         {
             try
             {
-                return Ok(await _userService.GetUsersChatsAsync(userId));
+                var chats = await _userService.GetUsersChatsAsync(userId);
+                return Ok(chats);
             }
             catch (Exception ex)
             {

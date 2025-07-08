@@ -9,13 +9,16 @@ namespace Repositories.DTOs
 {
     public class RequestPayloadDTO
     {
-        [JsonPropertyName("UserId")]
-        public int UserID { get; set; }
-        [JsonPropertyName("ChatId")]
-        public int ChatID { get; set; }
-        [JsonPropertyName("Content")]
+        public int UserId { get; set; }
+        public int ChatId { get; set; }
         public string? Content { get; set; }
-        [JsonPropertyName("MessageId")]
-        public int? MessageID { get; set; }
+        public int? MessageId { get; set; }
+        public List<int>? UserIds { get; set; }
+    }
+
+    public class ResponsePayloadDTO
+    {
+        public MessageForChatDTO? Message { get; set; }
+        public SocketChatDTO? Chat { get; set; }
     }
 }

@@ -45,6 +45,7 @@ namespace Repositories.Repositories
                 .FirstOrDefaultAsync(u => u.Id == userId);
             if (user == null)
                 throw new Exception("User not found.");
+            user.Chats = user.Chats.OrderByDescending(c => c.LastUpdate).ToList();
             return user;
         }
 

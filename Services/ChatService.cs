@@ -19,7 +19,8 @@ namespace Services
 
         public async Task<Chat?> AddChatAsync(List<int> userIds)
         {
-            return await _chatRepository.AddChatAsync(userIds);
+            var chat = await _chatRepository.AddChatAsync(userIds);
+            return chat;
         }
 
         public async Task<ChatWithMessagesDTO?> GetChatMessagesAsync(int chatId, int userId)

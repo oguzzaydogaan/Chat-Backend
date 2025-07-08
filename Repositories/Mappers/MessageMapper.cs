@@ -27,10 +27,10 @@ namespace Repositories.Mappers
         {
             return new RequestPayloadDTO
             {
-                UserID = message.UserId,
-                ChatID = message.ChatId,
+                UserId = message.UserId,
+                ChatId = message.ChatId,
                 Content = message.Content,
-                MessageID = message.Id,
+                MessageId = message.Id,
             };
         }
 
@@ -38,8 +38,8 @@ namespace Repositories.Mappers
         {
             return new Message
             {
-                UserId = payload.UserID,
-                ChatId = payload.ChatID,
+                UserId = payload.UserId,
+                ChatId = payload.ChatId,
                 Content = payload.Content,
             };
         }

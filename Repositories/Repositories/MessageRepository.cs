@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Repositories.DTOs;
 using Repositories.Entities;
+using System;
 
 namespace Repositories.Repositories
 {
@@ -20,10 +21,13 @@ namespace Repositories.Repositories
         public async Task AddMessageAsync(Message message)
         {
             var chat = await _context.Chats.Include(c => c.Users).FirstOrDefaultAsync(c => c.Id == message.ChatId);
+            if (chat == null)
+                throw new Exception("Can not found chat.");
             if (chat != null && !chat.Users.Any(u => u.Id == message.UserId))
                 throw new Exception("User is not a member of the chat.");
             try
             {
+                chat!.LastUpdate = message.Time;
                 await _context.Messages.AddAsync(message);
                 await _context.SaveChangesAsync();
             }
@@ -41,6 +45,7 @@ namespace Repositories.Repositories
             message.IsDeleted = true;
             try
             {
+                message.Chat!.LastUpdate = DateTime.UtcNow;
                 _context.Update(message);
                 await _context.SaveChangesAsync();
                 return message;

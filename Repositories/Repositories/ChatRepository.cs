@@ -57,6 +57,7 @@ namespace Repositories.Repositories
             try
             {
                 chat.Users.Add(user);
+                chat.LastUpdate = DateTime.UtcNow;
                 _context.Chats.Update(chat);
                 await _context.SaveChangesAsync();
                 return chat;

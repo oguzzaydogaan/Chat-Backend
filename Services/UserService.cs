@@ -32,6 +32,10 @@ namespace Services
         public async Task<Object?> GetUsersChatsAsync(int userId)
         {
             var user = await _userRepository.GetUsersChatsAsync(userId);
+            if (user.Chats == null)
+            {
+                return null;
+            }
             var chats = user!.Chats.Select(c =>
             {
                 string name = string.Join("", c.Users.Select(u => u.Id != userId ? u.Name + ", " : ""));
