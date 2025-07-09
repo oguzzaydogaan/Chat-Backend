@@ -53,7 +53,7 @@ namespace Services
             using var serviceScope = _serviceScopeFactory.CreateScope();
             var messageService = serviceScope.ServiceProvider.GetService<MessageService>();
             var chatService = serviceScope.ServiceProvider.GetService<ChatService>();
-            if (messageService == null || chatService==null)
+            if (messageService == null || chatService == null)
             {
                 return null;
             }
@@ -91,6 +91,13 @@ namespace Services
                 {
                     return null;
                 }
+                mWithUsers.Users = chat.Users;
+                socketMessage.Payload.Chat = chat.EntityToChatDTO();
+            }
+            else if (messageJson?.Type == "New-UserToChat")
+            {
+                socketMessage.Type = "New-UserToChat";
+                var chat = await chatService.AddUserToChatAsync(messageJson.Payload.ChatId, messageJson.Payload.UserId);
                 mWithUsers.Users = chat.Users;
                 socketMessage.Payload.Chat = chat.EntityToChatDTO();
             }
