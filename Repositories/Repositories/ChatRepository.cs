@@ -25,6 +25,15 @@ namespace Repositories.Repositories
                 .ToListAsync();
             if (users.Count != userIds.Count)
                 throw new Exception("Some users not found.");
+            if (userIds.Count == 2)
+            {
+                var findChat = await _context.Chats.Include(c=>c.Users)
+                    .FirstOrDefaultAsync(c=> c.Users.Count==users.Count && c.Users.All(u=> users.Contains(u)));
+                if (findChat != null)
+                {
+                    return null;
+                }
+            }
             var chat = new Chat
             {
                 Users = users

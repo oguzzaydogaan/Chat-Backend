@@ -37,7 +37,7 @@ namespace Services
                 var info = await ConvertRequest(buffer, receiveResult);
                 if (info == null || info.Bytes == null || info.Users == null)
                 {
-                    throw new Exception("Message or Users can not be null.");
+                    continue;
                 }
 
                 await SendMessageToClients(info.Bytes, info.Users);
@@ -55,7 +55,7 @@ namespace Services
             var chatService = serviceScope.ServiceProvider.GetService<ChatService>();
             if (messageService == null || chatService == null)
             {
-                return null;
+                throw new Exception("Code: 010");
             }
             var messageString = Encoding.UTF8.GetString(buffer, 0, receiveResult.Count);
             RequestSocketMessageDTO? messageJson = JsonSerializer.Deserialize<RequestSocketMessageDTO>(messageString);

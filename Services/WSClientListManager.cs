@@ -16,7 +16,7 @@ namespace Services
         {
             if (Clients.ContainsKey(id))
             {
-                await RemoveClient(id,"Another device connected.");
+                await RemoveClient(id, "Another device connected.");
             }
             var clientWS = new WSClient(this, ws, _serviceScopeFactory);
             Clients.TryAdd(id, clientWS);
