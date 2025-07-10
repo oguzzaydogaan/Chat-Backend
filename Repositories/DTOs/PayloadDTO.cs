@@ -20,5 +20,6 @@ namespace Repositories.DTOs
     {
         public MessageForChatDTO? Message { get; set; }
         public SocketChatDTO? Chat { get; set; }
+        public string? Error { get; set; }
     }
 }

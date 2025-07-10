@@ -12,10 +12,10 @@ namespace Services
         }
         private readonly MessageRepository _messageRepository;
 
-        public async Task<MessageWithUsersDTO> AddMessageAsync(Message message)
+        public async Task<MessageWithUsersDTO?> AddMessageAsync(Message message)
         {
             if (message == null)
-                throw new ArgumentNullException("Message cannot be null.");
+                return null;
             await _messageRepository.AddMessageAsync(message);
             var mWithUsers = new MessageWithUsersDTO
             {
@@ -26,7 +26,7 @@ namespace Services
         }
         public async Task<MessageWithUsersDTO> DeleteMessageAsync(int messageId)
         {
-            var message =  await _messageRepository.DeleteMessageAsync(messageId);
+            var message = await _messageRepository.DeleteMessageAsync(messageId);
             var mWithUsers = new MessageWithUsersDTO
             {
                 Users = message.Chat!.Users,
