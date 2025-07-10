@@ -78,6 +78,7 @@ namespace Services
                 socketMessage.Type = "Delete-Message";
                 mWithUsers = await messageService!.DeleteMessageAsync(mid);
                 socketMessage.Payload.Message = mWithUsers.Message!.ToMessageForChatDTO();
+
             }
             else if (messageJson?.Type == "New-Chat")
             {
@@ -106,6 +107,7 @@ namespace Services
             var bytes = Encoding.UTF8.GetBytes(json);
             return new BytesWithUsersDTO { Bytes = bytes, Users = mWithUsers.Users };
         }
+
 
         public async Task SendMessageToClients(byte[] bytes, ICollection<User> users)
         {
