@@ -1,4 +1,6 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Exceptions;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using Repositories.DTOs;
 using Repositories.Entities;
@@ -34,13 +36,31 @@ namespace Services
                 {
                     throw new Exception("Token expired.");
                 }
-                var info = await ConvertRequest(buffer, receiveResult);
-                if (info == null || info.Bytes == null || info.Users == null)
+                try
                 {
-                    continue;
+                    var msg = await ConvertRequest(buffer, receiveResult);
+                    if (msg.Bytes == null || msg.Users == null)
+                    {
+                        throw new ArgumentNullException("Msg error.");
+                    }
+                    await SendMessageToClients(msg.Bytes, msg.Users);
                 }
-
-                await SendMessageToClients(info.Bytes, info.Users);
+                catch (ArgumentNullException ex)
+                {
+                    await SendErrorToClient(ex.Message);
+                }
+                catch (DbUpdateException)
+                {
+                    await SendErrorToClient("Database error.");
+                }
+                catch (NotSupportedException)
+                {
+                    await SendErrorToClient("JSON error.");
+                }
+                catch (Exception ex)
+                {
+                    await SendErrorToClient(ex.Message);
+                }
             }
             while (!receiveResult.CloseStatus.HasValue);
 
@@ -48,54 +68,65 @@ namespace Services
 
         }
 
-        public async Task<BytesWithUsersDTO?> ConvertRequest(byte[] buffer, WebSocketReceiveResult receiveResult)
+        public async Task<BytesWithUsersDTO> ConvertRequest(byte[] buffer, WebSocketReceiveResult receiveResult)
         {
             using var serviceScope = _serviceScopeFactory.CreateScope();
             var messageService = serviceScope.ServiceProvider.GetService<MessageService>();
             var chatService = serviceScope.ServiceProvider.GetService<ChatService>();
             if (messageService == null || chatService == null)
             {
-                throw new Exception("Code: 010");
+                throw new ArgumentNullException("An error occured");
             }
             var messageString = Encoding.UTF8.GetString(buffer, 0, receiveResult.Count);
             RequestSocketMessageDTO? messageJson = JsonSerializer.Deserialize<RequestSocketMessageDTO>(messageString);
             if (string.IsNullOrEmpty(messageJson?.ToString()))
             {
-                return null;
+                throw new ArgumentNullException("Message couldn't send");
             }
             ResponseSocketMessageDTO socketMessage = new();
-            MessageWithUsersDTO mWithUsers = new();
+            MessageWithUsersDTO? mWithUsers = new();
 
-            if (messageJson?.Type == "Send-Message")
+            if (messageJson.Type == "Send-Message")
             {
                 socketMessage.Type = "Send-Message";
-                mWithUsers = await messageService!.AddMessageAsync(messageJson.Payload!.ToMessage());
-                socketMessage.Payload.Message = mWithUsers.Message!.ToMessageForChatDTO();
+                mWithUsers = await messageService.AddMessageAsync(messageJson.Payload.ToMessage());
+                if (mWithUsers == null || mWithUsers.Message == null)
+                {
+                    throw new ArgumentNullException("Message couldn't send");
+                }
+                socketMessage.Payload.Message = mWithUsers.Message.ToMessageForChatDTO();
             }
-            else if (messageJson?.Type == "Delete-Message")
+            else if (messageJson.Type == "Delete-Message")
             {
-                int mid = (int)messageJson!.Payload!.MessageId!;
+                if (messageJson.Payload.MessageId == null)
+                {
+                    throw new ArgumentNullException("Message couldn't delete");
+                }
+                int mid = (int)messageJson.Payload.MessageId;
                 socketMessage.Type = "Delete-Message";
-                mWithUsers = await messageService!.DeleteMessageAsync(mid);
-                socketMessage.Payload.Message = mWithUsers.Message!.ToMessageForChatDTO();
-
+                mWithUsers = await messageService.DeleteMessageAsync(mid);
+                if (mWithUsers == null || mWithUsers.Message == null)
+                {
+                    throw new ArgumentNullException("Message couldn't delete");
+                }
+                socketMessage.Payload.Message = mWithUsers.Message.ToMessageForChatDTO();
             }
-            else if (messageJson?.Type == "New-Chat")
+            else if (messageJson.Type == "New-Chat")
             {
                 socketMessage.Type = "New-Chat";
                 if (messageJson.Payload.UserIds == null)
                 {
-                    return null;
+                    throw new ArgumentNullException("Chat couldn't create");
                 }
                 var chat = await chatService.AddChatAsync(messageJson.Payload.UserIds);
                 if (chat == null)
                 {
-                    return null;
+                    throw new ChatNotFoundException();
                 }
                 mWithUsers.Users = chat.Users;
                 socketMessage.Payload.Chat = chat.EntityToChatDTO();
             }
-            else if (messageJson?.Type == "New-UserToChat")
+            else if (messageJson.Type == "New-UserToChat")
             {
                 socketMessage.Type = "New-UserToChat";
                 var chat = await chatService.AddUserToChatAsync(messageJson.Payload.ChatId, messageJson.Payload.UserId);
@@ -106,6 +137,23 @@ namespace Services
             var json = JsonSerializer.Serialize(socketMessage);
             var bytes = Encoding.UTF8.GetBytes(json);
             return new BytesWithUsersDTO { Bytes = bytes, Users = mWithUsers.Users };
+        }
+
+
+        public async Task SendErrorToClient(string ex)
+        {
+            ResponseSocketMessageDTO message = new()
+            {
+                Type = "Error"
+            };
+            message.Payload.Error = ex;
+            var json = JsonSerializer.Serialize(message);
+            var bytes = Encoding.UTF8.GetBytes(json);
+            await _client.SendAsync(
+                            new ArraySegment<byte>(bytes),
+                            WebSocketMessageType.Text,
+                            true,
+                            CancellationToken.None);
         }
 
 
