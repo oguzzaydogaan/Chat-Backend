@@ -23,9 +23,9 @@ namespace Repositories.Repositories
         {
             var chat = await _context.Chats.Include(c => c.Users).FirstOrDefaultAsync(c => c.Id == message.ChatId);
             if (chat == null)
-                throw new MessageException(MessageErrorType.ChatNotFound);
+                throw new ChatNotFoundException();
             if (!chat.Users.Any(u => u.Id == message.UserId))
-                throw new MessageException(MessageErrorType.UserNotMemberOfChat);
+                throw new UserNotMemberOfChatException();
             chat.LastUpdate = message.Time;
             await _context.Messages.AddAsync(message);
             await _context.SaveChangesAsync();
@@ -36,7 +36,7 @@ namespace Repositories.Repositories
         {
             var message = await _context.Messages.Include(m => m.Chat).ThenInclude(c => c!.Users).FirstOrDefaultAsync(m => m.Id == messageId);
             if (message == null)
-                throw new MessageException(MessageErrorType.MessageNotFound);
+                throw new MessageNotFoundException();
             message.IsDeleted = true;
             message.Chat!.LastUpdate = DateTime.UtcNow;
             _context.Update(message);

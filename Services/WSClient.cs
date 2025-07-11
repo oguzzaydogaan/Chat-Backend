@@ -49,14 +49,6 @@ namespace Services
                 {
                     await SendErrorToClient(ex.Message);
                 }
-                catch (ChatException ex)
-                {
-                    await SendErrorToClient(ex.Message);
-                }
-                catch (MessageException ex)
-                {
-                    await SendErrorToClient(ex.Message);
-                }
                 catch (DbUpdateException)
                 {
                     await SendErrorToClient("Database error.");
@@ -64,6 +56,10 @@ namespace Services
                 catch (NotSupportedException)
                 {
                     await SendErrorToClient("JSON error.");
+                }
+                catch (Exception ex)
+                {
+                    await SendErrorToClient(ex.Message);
                 }
             }
             while (!receiveResult.CloseStatus.HasValue);
@@ -79,13 +75,13 @@ namespace Services
             var chatService = serviceScope.ServiceProvider.GetService<ChatService>();
             if (messageService == null || chatService == null)
             {
-                throw new ArgumentNullException("Service null exception.");
+                throw new ArgumentNullException("An error occured");
             }
             var messageString = Encoding.UTF8.GetString(buffer, 0, receiveResult.Count);
             RequestSocketMessageDTO? messageJson = JsonSerializer.Deserialize<RequestSocketMessageDTO>(messageString);
             if (string.IsNullOrEmpty(messageJson?.ToString()))
             {
-                throw new ArgumentNullException("Message null exception.");
+                throw new ArgumentNullException("Message couldn't send");
             }
             ResponseSocketMessageDTO socketMessage = new();
             MessageWithUsersDTO? mWithUsers = new();
@@ -96,7 +92,7 @@ namespace Services
                 mWithUsers = await messageService.AddMessageAsync(messageJson.Payload.ToMessage());
                 if (mWithUsers == null || mWithUsers.Message == null)
                 {
-                    throw new ArgumentNullException("Message null exception.");
+                    throw new ArgumentNullException("Message couldn't send");
                 }
                 socketMessage.Payload.Message = mWithUsers.Message.ToMessageForChatDTO();
             }
@@ -104,14 +100,14 @@ namespace Services
             {
                 if (messageJson.Payload.MessageId == null)
                 {
-                    throw new ArgumentNullException("Message id null exception.");
+                    throw new ArgumentNullException("Message couldn't delete");
                 }
                 int mid = (int)messageJson.Payload.MessageId;
                 socketMessage.Type = "Delete-Message";
                 mWithUsers = await messageService.DeleteMessageAsync(mid);
                 if (mWithUsers == null || mWithUsers.Message == null)
                 {
-                    throw new ArgumentNullException("Message null exception.");
+                    throw new ArgumentNullException("Message couldn't delete");
                 }
                 socketMessage.Payload.Message = mWithUsers.Message.ToMessageForChatDTO();
             }
@@ -120,12 +116,12 @@ namespace Services
                 socketMessage.Type = "New-Chat";
                 if (messageJson.Payload.UserIds == null)
                 {
-                    throw new ArgumentNullException("Message null exception.");
+                    throw new ArgumentNullException("Chat couldn't create");
                 }
                 var chat = await chatService.AddChatAsync(messageJson.Payload.UserIds);
                 if (chat == null)
                 {
-                    throw new ChatException(ChatErrorType.ChatNotFound);
+                    throw new ChatNotFoundException();
                 }
                 mWithUsers.Users = chat.Users;
                 socketMessage.Payload.Chat = chat.EntityToChatDTO();
