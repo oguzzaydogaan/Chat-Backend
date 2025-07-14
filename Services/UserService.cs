@@ -67,7 +67,7 @@ namespace Services
         {
             try
             {
-                Regex regex = new Regex("^(?=.*?[A-Za-z])(?=.*?[0-9])(?=.*?[^a-zA-Z0-9_]).{6,}$");
+                Regex regex = new Regex("^(?=.*[A-Za-z])(?=.*[0-9])(?=.*[^a-zA-Z0-9]).{6,}$");
                 if (regex.IsMatch(registerRequest.Password!) == false)
                 {
                     throw new Exception("Password must be at least 6 characters long and contain at least one letter, one number, and one special character.");
