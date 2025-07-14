@@ -4,6 +4,7 @@ using Repositories.DTOs;
 using Repositories.Entities;
 using Repositories.Mappers;
 using Repositories.Repositories;
+using System.Text.RegularExpressions;
 
 namespace Services
 {
@@ -66,6 +67,11 @@ namespace Services
         {
             try
             {
+                Regex regex = new Regex("^(?=.*?[A-Za-z])(?=.*?[0-9])(?=.*?[^a-zA-Z0-9_]).{6,}$");
+                if (regex.IsMatch(registerRequest.Password!) == false)
+                {
+                    throw new Exception("Password must be at least 6 characters long and contain at least one letter, one number, and one special character.");
+                }
                 await _userRepository.RegisterAsync(registerRequest.RegisterRequestDTOToUser());
             }
             catch (DbUpdateException)
