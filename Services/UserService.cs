@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.EntityFrameworkCore;
 using Repositories.DTOs;
 using Repositories.Entities;
@@ -22,18 +23,26 @@ namespace Services
 
         public async Task<List<UserDTO>> GetAllUsersAsync()
         {
-            var users = await _userRepository.GetAllUsersAsync();
-            return users;
+            var users = await _userRepository.GetAllAsync();
+            var usersDTOs = users.Select(u => u.ToUserDTO()).ToList();
+            return usersDTOs;
         }
 
         public async Task<User?> GetUserByIdAsync(int userId)
         {
-            return await _userRepository.GetUserByIdAsync(userId);
+            return await _userRepository.GetByIdAsync(userId);
         }
 
-        public async Task<User?> AddUserAsync(User user)
+        public async Task AddUserAsync(RegisterRequestDTO registerRequest)
         {
-            return await _userRepository.AddUserAsync(user);
+            Regex regex = new Regex("^(?=.*[A-Za-z])(?=.*[0-9])(?=.*[^a-zA-Z0-9]).{6,}$");
+            if (regex.IsMatch(registerRequest.Password!) == false)
+            {
+                throw new Exception("Password must be at least 6 characters long and contain at least one letter, one number, and one special character.");
+            }
+            var user = registerRequest.RegisterRequestDTOToUser();
+            user.Password = _passwordHasher.HashPassword(user, user.Password!);
+            await _userRepository.AddAsync(user);
         }
 
         public async Task<Object?> GetUsersChatsAsync(int userId)
@@ -58,35 +67,15 @@ namespace Services
 
         public async Task<LoginResponseDTO> LoginAsync(string email, string password)
         {
-            var user = await _userRepository.LoginAsync(email);
+            var user = await _userRepository.GetByEmailAsync(email);
             if (user == null)
-                throw new Exception("User not found.");
+                throw new Exception("User not found");
 
             var result = _passwordHasher.VerifyHashedPassword(user, user.Password!, password);
             if (result == PasswordVerificationResult.Failed)
-                throw new Exception("Invalid password.");
+                throw new Exception("Invalid password");
 
             return _jwtService.Authenticate(user);
-        }
-
-        public async Task RegisterAsync(RegisterRequestDTO registerRequest)
-        {
-            try
-            {
-                Regex regex = new Regex("^(?=.*[A-Za-z])(?=.*[0-9])(?=.*[^a-zA-Z0-9]).{6,}$");
-                if (regex.IsMatch(registerRequest.Password!) == false)
-                {
-                    throw new Exception("Password must be at least 6 characters long and contain at least one letter, one number, and one special character.");
-                }
-                await _userRepository.RegisterAsync(registerRequest.RegisterRequestDTOToUser());
-            }
-            catch (DbUpdateException)
-            {
-                throw new Exception("Database update error.");
-            }
-            catch(Exception ex) {
-                throw new Exception(ex.Message);
-            }
         }
     }
 }

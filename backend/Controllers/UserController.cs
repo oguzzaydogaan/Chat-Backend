@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Repositories.DTOs;
 using Repositories.Entities;
 using Services;
@@ -24,19 +25,22 @@ namespace backend.Controllers
             return Ok(users);
         }
 
-        [HttpPost]
-        public async Task<IActionResult> AddUserAsync([FromBody] User user)
+        [AllowAnonymous]
+        [HttpPost("register")]
+        public async Task<IActionResult> AddAsync([FromBody] RegisterRequestDTO registerRequest)
         {
-            if (user == null)
-                return BadRequest("User cannot be null.");
             try
             {
-                await _userService.AddUserAsync(user);
+                await _userService.AddUserAsync(registerRequest);
                 return Ok();
+            }
+            catch(DbUpdateException)
+            {
+                return StatusCode(500, "An error occured");
             }
             catch (Exception ex)
             {
-                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+                return StatusCode(400, ex.Message);
             }
         }
 
@@ -63,25 +67,16 @@ namespace backend.Controllers
                 var response = await _userService.LoginAsync(loginRequest.Email!, loginRequest.Password!);
                 return Ok(response);
             }
+            catch (DbUpdateException)
+            {
+                return StatusCode(500, "An error occured");
+            }
             catch (Exception ex)
             {
-                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+                return StatusCode(400, ex.Message);
             }
         }
 
-        [AllowAnonymous]
-        [HttpPost("register")]
-        public async Task<IActionResult> RegisterAsync([FromBody] RegisterRequestDTO registerRequest)
-        {
-            try
-            {
-                await _userService.RegisterAsync(registerRequest);
-                return Ok();
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
-            }
-        }
+        
     }
 }

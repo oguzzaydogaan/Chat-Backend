@@ -6,48 +6,33 @@ using Repositories.Mappers;
 
 namespace Repositories.Repositories
 {
-    public class UserRepository
+    public class UserRepository : BaseRepository<User>
     {
+        private readonly PasswordHasher<User> _passwordHasher;
         public UserRepository(RepositoryContext context, PasswordHasher<User> passwordHasher)
+            : base(context)
         {
-            _context = context;
             _passwordHasher = passwordHasher;
         }
-        private readonly RepositoryContext _context;
-        private readonly PasswordHasher<User> _passwordHasher;
 
-        public async Task<List<UserDTO>> GetAllUsersAsync()
+        public async Task<User?> GetByEmailAsync(string email)
         {
-            var users = await _context.Users.Select(u => u.ToUserDTO()).ToListAsync();
-            return users;
-        }
-
-        public async Task<User?> GetUserByIdAsync(int userId)
-        {
-            var user = await _context.Users.FindAsync(userId);
-            if (user == null)
-                throw new Exception("User not found.");
+            var user = await DbSet.FirstOrDefaultAsync(u => u.Email == email);
             return user;
         }
 
-        public async Task<User?> AddUserAsync(User user)
+        public override async Task<User> AddAsync(User user)
         {
-            try
-            {
-                user.Password = _passwordHasher.HashPassword(user, user.Password!);
-                await _context.Users.AddAsync(user);
-                await _context.SaveChangesAsync();
-                return user;
+            var isTaken = await DbSet.FirstOrDefaultAsync(u => u.Email == user.Email) != null;
+            if (!isTaken)
+            {               
+                return await base.AddAsync(user);
             }
-            catch (DbUpdateException ex)
-            {
-                throw new Exception("An error occurred while adding the user.", ex);
-            }
+            throw new Exception("This email already taken.");
         }
-
         public async Task<User?> GetUsersChatsAsync(int userId)
         {
-            var user = await _context.Users
+            var user = await DbSet
                 .Include(u => u.Chats)
                 .ThenInclude(c => c.Users)
                 .FirstOrDefaultAsync(u => u.Id == userId);
@@ -57,23 +42,6 @@ namespace Repositories.Repositories
             return user;
         }
 
-        public async Task<User?> LoginAsync(string email)
-        {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
-            return user;
-        }
 
-        public async Task RegisterAsync(User user)
-        {
-            var isValid = await _context.Users.FirstOrDefaultAsync(u => u.Email == user.Email) == null ? true : false;
-            if (isValid)
-            {
-                user.Password = _passwordHasher.HashPassword(user, user.Password!);
-                await _context.Users.AddAsync(user);
-                await _context.SaveChangesAsync();
-                return;
-            }
-            throw new Exception("This email already taken.");
-        }
     }
 }
