@@ -15,6 +15,7 @@ namespace backend.Controllers
         private readonly JwtService _jwtService;
         private readonly WSClientListManager _wsClientListManager;
 
+        [HttpGet]
         public async Task Get()
         {
             if (HttpContext.WebSockets.IsWebSocketRequest)
