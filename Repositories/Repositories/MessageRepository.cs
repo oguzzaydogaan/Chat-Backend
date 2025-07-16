@@ -6,30 +6,11 @@ using System;
 
 namespace Repositories.Repositories
 {
-    public class MessageRepository
+    public class MessageRepository : BaseRepository<Message>
     {
         public MessageRepository(RepositoryContext context)
+            : base(context)
         {
-            _context = context;
-        }
-        private readonly RepositoryContext _context;
-
-        public async Task<Message?> GetMessageByIdAsync(int messageId)
-        {
-            var message = await _context.Messages.FindAsync(messageId);
-            return message;
-        }
-        public async Task AddMessageAsync(Message message)
-        {
-            var chat = await _context.Chats.Include(c => c.Users).FirstOrDefaultAsync(c => c.Id == message.ChatId);
-            if (chat == null)
-                throw new ChatNotFoundException();
-            if (!chat.Users.Any(u => u.Id == message.UserId))
-                throw new UserNotMemberOfChatException();
-            chat.LastUpdate = message.Time;
-            await _context.Messages.AddAsync(message);
-            await _context.SaveChangesAsync();
-
         }
 
         public async Task<Message> DeleteMessageAsync(int messageId)

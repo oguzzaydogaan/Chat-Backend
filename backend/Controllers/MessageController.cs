@@ -25,7 +25,7 @@ namespace backend.Controllers
                 return BadRequest("Invalid chat ID or user ID.");
             try
             {
-                await _messageService.AddMessageAsync(message);
+                await _messageService.AddAsync(message);
                 return StatusCode(201);
             }
             catch (Exception ex)

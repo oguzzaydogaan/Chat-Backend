@@ -31,7 +31,7 @@ namespace backend.Controllers
         {
             try
             {
-                await _userService.AddUserAsync(registerRequest);
+                await _userService.AddAsync(registerRequest);
                 return Ok();
             }
             catch(DbUpdateException)
@@ -49,7 +49,7 @@ namespace backend.Controllers
         {
             try
             {
-                var chats = await _userService.GetUsersChatsAsync(userId);
+                var chats = await _userService.GetChatsAsync(userId);
                 return Ok(chats);
             }
             catch (Exception ex)

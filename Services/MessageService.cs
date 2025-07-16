@@ -1,4 +1,5 @@
-﻿using Repositories.DTOs;
+﻿using Exceptions;
+using Repositories.DTOs;
 using Repositories.Entities;
 using Repositories.Repositories;
 
@@ -6,20 +7,28 @@ namespace Services
 {
     public class MessageService
     {
-        public MessageService(MessageRepository messageRepository)
+        public MessageService(MessageRepository messageRepository, ChatRepository chatRepository)
         {
             _messageRepository = messageRepository;
+            _chatRepository = chatRepository;
         }
         private readonly MessageRepository _messageRepository;
+        private readonly ChatRepository _chatRepository;
 
-        public async Task<MessageWithUsersDTO?> AddMessageAsync(Message message)
+        public async Task<MessageWithUsersDTO?> AddAsync(Message message)
         {
             if (message == null)
                 return null;
-            await _messageRepository.AddMessageAsync(message);
+
+            var chat = await _chatRepository.GetChatWithUsersAsync(message.ChatId);
+            if (!chat.Users.Any(u => u.Id == message.UserId))
+                throw new UserNotMemberOfChatException();
+            chat.LastUpdate = message.Time;
+            await _chatRepository.UpdateAsync(chat);
+            await _messageRepository.AddAsync(message);
             var mWithUsers = new MessageWithUsersDTO
             {
-                Users = message.Chat!.Users,
+                Users = chat.Users,
                 Message = message
             };
             return mWithUsers;

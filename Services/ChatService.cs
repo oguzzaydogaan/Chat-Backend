@@ -19,10 +19,14 @@ namespace Services
 
         public async Task<Chat?> AddChatAsync(CreateChatRequestDTO chat)
         {
-            var users = await _userRepository.SearchList(u => chat.UserIds.Contains(u.Id));
-            if (users.Count != chat.UserIds.Count)
+            if (chat.UserIds.Count < 2)
             {
-                throw new Exception("Some users not found.");
+                throw new Exception("At least two users are required to create a chat");
+            }
+            var users = await _userRepository.GetByListOfIdsAsync(chat.UserIds);
+            if (users == null || users.Count != chat.UserIds.Count)
+            {
+                throw new Exception("Some users not found");
             }
             if (users.Count == 2)
             {
@@ -41,7 +45,7 @@ namespace Services
 
         public async Task<ChatWithMessagesDTO?> GetChatMessagesAsync(int chatId, int userId)
         {
-            var chat = await _chatRepository.GetChatMessagesAsync(chatId, userId);
+            var chat = await _chatRepository.GetMessagesAsync(chatId, userId);
             if (chat == null)
                 throw new Exception("Chat not found.");
             return chat;

@@ -89,7 +89,7 @@ namespace Services
             if (messageJson.Type == "Send-Message")
             {
                 socketMessage.Type = "Send-Message";
-                mWithUsers = await messageService.AddMessageAsync(messageJson.Payload.ToMessage());
+                mWithUsers = await messageService.AddAsync(messageJson.Payload.ToMessage());
                 if (mWithUsers == null || mWithUsers.Message == null)
                 {
                     throw new ArgumentNullException("Message couldn't send");

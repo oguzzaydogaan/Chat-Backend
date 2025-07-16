@@ -1,8 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Repositories.DTOs;
 using Repositories.Entities;
-using Repositories.Mappers;
 
 namespace Repositories.Repositories
 {
@@ -20,28 +18,21 @@ namespace Repositories.Repositories
             var user = await DbSet.FirstOrDefaultAsync(u => u.Email == email);
             return user;
         }
-
-        public override async Task<User> AddAsync(User user)
+        public async Task<List<User>?> GetByListOfIdsAsync(List<int> ids)
         {
-            var isTaken = await DbSet.FirstOrDefaultAsync(u => u.Email == user.Email) != null;
-            if (!isTaken)
-            {               
-                return await base.AddAsync(user);
-            }
-            throw new Exception("This email already taken.");
+            var users = await DbSet.Where(u => ids.Contains(u.Id)).ToListAsync();
+            return users;
         }
-        public async Task<User?> GetUsersChatsAsync(int userId)
+        public async Task<User> GetChatsAsync(int userId)
         {
             var user = await DbSet
                 .Include(u => u.Chats)
                 .ThenInclude(c => c.Users)
                 .FirstOrDefaultAsync(u => u.Id == userId);
             if (user == null)
-                throw new Exception("User not found.");
+                throw new Exception("User not found");
             user.Chats = user.Chats.OrderByDescending(c => c.LastUpdate).ToList();
             return user;
         }
-
-
     }
 }

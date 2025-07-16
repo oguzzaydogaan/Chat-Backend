@@ -1,11 +1,9 @@
-﻿using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Identity.Data;
-using Microsoft.EntityFrameworkCore;
+﻿using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.Identity;
 using Repositories.DTOs;
 using Repositories.Entities;
 using Repositories.Mappers;
 using Repositories.Repositories;
-using System.Text.RegularExpressions;
 
 namespace Services
 {
@@ -28,40 +26,43 @@ namespace Services
             return usersDTOs;
         }
 
-        public async Task<User?> GetUserByIdAsync(int userId)
+        public async Task<User?> GetByIdAsync(int userId)
         {
             return await _userRepository.GetByIdAsync(userId);
         }
 
-        public async Task AddUserAsync(RegisterRequestDTO registerRequest)
+        public async Task AddAsync(RegisterRequestDTO registerRequest)
         {
             Regex regex = new Regex("^(?=.*[A-Za-z])(?=.*[0-9])(?=.*[^a-zA-Z0-9]).{6,}$");
             if (regex.IsMatch(registerRequest.Password!) == false)
             {
-                throw new Exception("Password must be at least 6 characters long and contain at least one letter, one number, and one special character.");
+                throw new Exception("Password must be at least 6 characters long and contain at least one letter, one number, and one special character");
             }
             var user = registerRequest.RegisterRequestDTOToUser();
+            var isTaken = await _userRepository.GetByEmailAsync(user.Email);
+            if (isTaken != null)
+            {
+                throw new Exception("This email is already taken");
+            }
             user.Password = _passwordHasher.HashPassword(user, user.Password!);
             await _userRepository.AddAsync(user);
         }
 
-        public async Task<Object?> GetUsersChatsAsync(int userId)
+        public async Task<List<ChatDTO>?> GetChatsAsync(int userId)
         {
-            var user = await _userRepository.GetUsersChatsAsync(userId);
+            var user = await _userRepository.GetChatsAsync(userId);
             if (user.Chats == null)
             {
                 return null;
             }
             var chats = user!.Chats.Select(c =>
             {
-                string name = string.Join("", c.Users.Select(u => u.Id != userId ? u.Name + ", " : ""));
-                name = name.TrimEnd(',', ' ');
-                return new
+                if (c.Users.Count == 2)
                 {
-                    Id = c.Id,
-                    Name = name,
-                };
-            });
+                    c.Name = c.Users.FirstOrDefault(u => u.Id != userId)?.Name ?? throw new Exception("Other user not found");
+                }
+                return c.ToChatDTO();
+            }).ToList();
             return chats;
         }
 

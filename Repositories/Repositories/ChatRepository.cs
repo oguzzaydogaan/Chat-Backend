@@ -8,22 +8,24 @@ namespace Repositories.Repositories
 {
     public class ChatRepository : BaseRepository<Chat>
     {
+        private readonly UserRepository _userRepository;
         public ChatRepository(RepositoryContext context, UserRepository userRepository)
             : base(context)
         {
+            _userRepository = userRepository;
         }
 
         public async Task<Chat> AddUserToChat(int chatId, int userId)
         {
-            var chat = await _context.Chats
+            var chat = await DbSet
                 .Include(c => c.Users)
                 .FirstOrDefaultAsync(c => c.Id == chatId);
 
             if (chat == null)
                 throw new ChatNotFoundException();
 
-            var user = await _context.Users
-                .FirstOrDefaultAsync(u => u.Id == userId);
+            var user = await _userRepository
+                .GetByIdAsync(userId);
 
             if (user == null)
                 throw new UsersNotFoundException();
@@ -33,16 +35,24 @@ namespace Repositories.Repositories
 
             chat.Users.Add(user);
             chat.LastUpdate = DateTime.UtcNow;
-            _context.Chats.Update(chat);
-            await _context.SaveChangesAsync();
+            
 
-            return chat;
-
+            return await base.UpdateAsync(chat);
         }
 
-        public async Task<ChatWithMessagesDTO?> GetChatMessagesAsync(int chatId, int userId)
+        public async Task<Chat> GetChatWithUsersAsync(int chatId)
         {
-            var chat = await _context.Chats
+            var chat = await DbSet
+                .Include(c => c.Users)
+                .FirstOrDefaultAsync(c => c.Id == chatId);
+            if (chat == null)
+                throw new ChatNotFoundException();
+            return chat;
+        }
+
+        public async Task<ChatWithMessagesDTO?> GetMessagesAsync(int chatId, int userId)
+        {
+            var chat = await DbSet
                 .Include(c => c.Users)
                 .FirstOrDefaultAsync(c => c.Id == chatId);
 
@@ -54,7 +64,7 @@ namespace Repositories.Repositories
 
             try
             {
-                var messages = await _context.Messages
+                var messages = await _context.Set<Message>()
                 .Where(m => m.ChatId == chatId && m.IsDeleted == false)
                 .Include(m => m.User)
                 .OrderBy(m => m.Time)
@@ -77,21 +87,6 @@ namespace Repositories.Repositories
             {
                 throw new Exception("An error occurred while retrieving chat messages.", ex);
             }
-        }
-
-        public async Task DeleteChatAsync(int chatId)
-        {
-            var chat = await _context.Chats
-                .Include(c => c.Users)
-                .FirstOrDefaultAsync(c => c.Id == chatId);
-
-            if (chat == null)
-                throw new ChatNotFoundException();
-
-            _context.Chats.Remove(chat);
-            await _context.SaveChangesAsync();
-
-            return;
         }
     }
 }

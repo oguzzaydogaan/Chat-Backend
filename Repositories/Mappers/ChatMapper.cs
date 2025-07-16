@@ -22,5 +22,13 @@ namespace Repositories.Mappers
                 LastUpdate = DateTime.UtcNow
             };
         }
+        public static ChatDTO ToChatDTO(this Chat chat)
+        {
+            return new ChatDTO
+            {
+                Id = chat.Id,
+                Name = chat.Name
+            };
+        }
     }
 }
