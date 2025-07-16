@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Repositories.DTOs;
 using Repositories.Entities;
+using Repositories.Mappers;
 
 namespace Repositories.Repositories
 {
@@ -13,6 +15,12 @@ namespace Repositories.Repositories
         }
         private readonly RepositoryContext _context;
         private readonly PasswordHasher<User> _passwordHasher;
+
+        public async Task<List<UserDTO>> GetAllUsersAsync()
+        {
+            var users = await _context.Users.Select(u => u.ToUserDTO()).ToListAsync();
+            return users;
+        }
 
         public async Task<User?> GetUserByIdAsync(int userId)
         {

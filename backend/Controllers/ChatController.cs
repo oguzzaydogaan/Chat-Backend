@@ -36,8 +36,8 @@ namespace backend.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateChatAsync([FromBody] List<int> userIds)
         {
-            if (userIds == null || userIds.Count == 0)
-                return BadRequest("User IDs cannot be null or empty.");
+            if (userIds == null || userIds.Count < 2)
+                return BadRequest("You must enter at least two users to create a chat");
             try
             {
                 var chat = await _chatService.AddChatAsync(userIds);

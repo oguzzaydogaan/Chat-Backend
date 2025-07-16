@@ -20,6 +20,12 @@ namespace Services
         private readonly PasswordHasher<User> _passwordHasher;
         private readonly JwtService _jwtService;
 
+        public async Task<List<UserDTO>> GetAllUsersAsync()
+        {
+            var users = await _userRepository.GetAllUsersAsync();
+            return users;
+        }
+
         public async Task<User?> GetUserByIdAsync(int userId)
         {
             return await _userRepository.GetUserByIdAsync(userId);

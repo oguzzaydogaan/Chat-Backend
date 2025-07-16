@@ -17,6 +17,13 @@ namespace backend.Controllers
         }
         private readonly UserService _userService;
 
+        [HttpGet]
+        public async Task<IActionResult> GetAllUsers()
+        {
+            var users = await _userService.GetAllUsersAsync();
+            return Ok(users);
+        }
+
         [HttpPost]
         public async Task<IActionResult> AddUserAsync([FromBody] User user)
         {
