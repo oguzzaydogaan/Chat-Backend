@@ -23,6 +23,16 @@ namespace Repositories.Repositories
             return await DbSet.FindAsync(id);
         }
 
+        public async Task<List<TEntity>> SearchList(Expression<Func<TEntity, bool>> predicate)
+        {
+            return await DbSet.Where(predicate).ToListAsync();
+        }
+
+        public async Task<TEntity?> Search(Expression<Func<TEntity, bool>> predicate)
+        {
+            return await DbSet.FirstOrDefaultAsync(predicate);
+        }
+
         public virtual async Task<TEntity> AddAsync(TEntity entity)
         {
             await DbSet.AddAsync(entity);

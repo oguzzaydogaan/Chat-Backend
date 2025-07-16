@@ -12,6 +12,12 @@ namespace Repositories.DTOs
         public string? Name { get; set; }
     }
 
+    public class CreateChatRequestDTO
+    {
+        public string Name { get; set; } = string.Empty;
+        public List<int> UserIds { get; set; } = new List<int>();
+    }
+
     public class SocketChatDTO
     {
         public int Id { get; set; }

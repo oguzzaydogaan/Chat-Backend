@@ -8,40 +8,9 @@ namespace Repositories.Repositories
 {
     public class ChatRepository : BaseRepository<Chat>
     {
-        private readonly UserRepository _userRepository;
-        public ChatRepository(RepositoryContext context)
+        public ChatRepository(RepositoryContext context, UserRepository userRepository)
             : base(context)
         {
-        }
-
-
-        public async Task<Chat?> AddChatAsync(List<int> userIds)
-        {
-            var users = await _userRepository.GetByConditionAsync(u => userIds.Contains(u.Id));
-
-            if (users.Count != userIds.Count)
-                throw new UsersNotFoundException();
-
-            if (userIds.Count == 2)
-            {
-                var findChat = await DbSet.Include(c => c.Users)
-                    .FirstOrDefaultAsync(c => c.Users.Count == users.Count && c.Users.All(u => users.Contains(u)));
-
-                if (findChat != null)
-                {
-                    throw new ChatAlreadyExistException();
-                }
-            }
-
-            var chat = new Chat
-            {
-                Users = users
-            };
-
-            await DbSet.AddAsync(chat);
-            await SaveChangesAsync();
-
-            return chat;
         }
 
         public async Task<Chat> AddUserToChat(int chatId, int userId)

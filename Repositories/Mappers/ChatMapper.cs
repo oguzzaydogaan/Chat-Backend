@@ -1,10 +1,5 @@
 ﻿using Repositories.DTOs;
 using Repositories.Entities;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Repositories.Mappers
 {
@@ -16,6 +11,15 @@ namespace Repositories.Mappers
             {
                 Id = chat.Id,
                 Users = chat.Users.Select(u => new UserDTO { Id = u.Id, Name = u.Name })?.ToList()
+            };
+        }
+        public static Chat ToChat(this CreateChatRequestDTO createChatRequestDTO, List<User> users)
+        {
+            return new Chat
+            {
+                Users = users,
+                Name = createChatRequestDTO.Name,
+                LastUpdate = DateTime.UtcNow
             };
         }
     }

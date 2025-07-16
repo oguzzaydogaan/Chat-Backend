@@ -1,26 +1,42 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Exceptions;
+using Microsoft.EntityFrameworkCore;
 using Repositories.DTOs;
 using Repositories.Entities;
+using Repositories.Mappers;
 using Repositories.Repositories;
 
 namespace Services
 {
     public class ChatService
     {
-        public ChatService(ChatRepository chatRepository)
+        public ChatService(ChatRepository chatRepository, UserRepository userRepository)
         {
             _chatRepository = chatRepository;
+            _userRepository = userRepository;
         }
         private readonly ChatRepository _chatRepository;
+        private readonly UserRepository _userRepository;
 
-        public async Task<Chat?> AddChatAsync(List<int> userIds)
+        public async Task<Chat?> AddChatAsync(CreateChatRequestDTO chat)
         {
-            var chat = await _chatRepository.AddChatAsync(userIds);
-            return chat;
+            var users = await _userRepository.SearchList(u => chat.UserIds.Contains(u.Id));
+            if (users.Count != chat.UserIds.Count)
+            {
+                throw new Exception("Some users not found.");
+            }
+            if (users.Count == 2)
+            {
+                var findChat = await _chatRepository
+                    .Search(c => c.Users.Count == users.Count && c.Users.All(u => users.Contains(u)));
+
+                if (findChat != null)
+                {
+                    throw new ChatAlreadyExistException();
+                }
+            }
+
+            var created = await _chatRepository.AddAsync(chat.ToChat(users));
+            return created;
         }
 
         public async Task<ChatWithMessagesDTO?> GetChatMessagesAsync(int chatId, int userId)
