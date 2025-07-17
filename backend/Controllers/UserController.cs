@@ -1,8 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Repositories.DTOs;
 using Services;
+using Services.DTOs;
 
 namespace backend.Controllers
 {
@@ -22,6 +23,26 @@ namespace backend.Controllers
         {
             var users = await _userService.GetAllAsync();
             return Ok(users);
+        }
+
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetAsync(int id)
+        {
+            if (id <= 0)
+                return BadRequest("Invalid user ID");
+            try
+            {
+                var user = await _userService.GetByIdAsync(id);
+                return Ok(user);
+            }
+            catch (DbUpdateException)
+            {
+                return StatusCode(500, "Database error occured while retrieving user");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(400, ex.Message);
+            }
         }
 
         [AllowAnonymous]
@@ -73,6 +94,28 @@ namespace backend.Controllers
             catch (DbUpdateException)
             {
                 return StatusCode(500, "Database error occured");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(400, ex.Message);
+            }
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteAsync(int id)
+        {
+            try
+            {
+                var response = await _userService.DeleteAsync(id);
+                return Ok(response);
+            }
+            catch (DbUpdateException)
+            {
+                return StatusCode(500, "Database error occured");
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
             }
             catch (Exception ex)
             {

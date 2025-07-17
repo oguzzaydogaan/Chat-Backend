@@ -1,4 +1,4 @@
-﻿namespace Repositories.DTOs
+﻿namespace Services.DTOs
 {
     public class UserDTO
     {

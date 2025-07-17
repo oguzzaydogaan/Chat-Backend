@@ -2,8 +2,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Repositories.DTOs;
+using Repositories.Entities;
 using Services;
+using Services.DTOs;
+using Services.Mappers;
 using System.Text.Json;
 
 namespace backend.Controllers
@@ -18,6 +20,24 @@ namespace backend.Controllers
             _chatService = chatService;
         }
         private readonly ChatService _chatService;
+
+        [HttpGet]
+        public async Task<IActionResult> GetAllAsync()
+        {
+            try
+            {
+                var chats = await _chatService.GetAllAsync();
+                return Ok(chats);
+            }
+            catch (DbUpdateException)
+            {
+                return StatusCode(500, "Database error occurred while retrieving chat");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
 
         [HttpGet("{chatId}/users/{userId}")]
         public async Task<IActionResult> GetChatWithMessagesAsync(int userId, int chatId)
@@ -44,7 +64,7 @@ namespace backend.Controllers
             try
             {
                 var chat = await _chatService.AddAsync(dto);
-                return Created();
+                return Ok(chat.ToCreateChatResponseDTO());
             }
             catch (ChatAlreadyExistException ex)
             {

@@ -1,9 +1,24 @@
 ﻿using Repositories.Entities;
 
-namespace Repositories.DTOs
+namespace Services.DTOs
 {
     public class MessageDTO
     {
+    }
+
+    public class CreateMessageRequestDTO
+    {
+
+    }
+
+    public class GetAllMessagesResDTO
+    {
+        public int Id { get; set; }
+        public string? Content { get; set; }
+        public DateTime Time { get; set; }
+        public bool IsDeleted { get; set; }
+        public int UserId { get; set; }
+        public int ChatId { get; set; }
     }
 
     public class MessageForChatDTO

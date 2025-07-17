@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Repositories.DTOs
+﻿namespace Services.DTOs
 {
     public class ChatDTO
     {
@@ -16,6 +10,12 @@ namespace Repositories.DTOs
     {
         public string Name { get; set; } = string.Empty;
         public List<int> UserIds { get; set; } = new List<int>();
+    }
+
+    public class CreateChatResponseDTO
+    {
+        public string Name { get; set; } = string.Empty;
+        public List<UserDTO> Users { get; set; } = new List<UserDTO>();
     }
 
     public class SocketChatDTO

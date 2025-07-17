@@ -1,7 +1,8 @@
 ﻿using Exceptions;
-using Repositories.DTOs;
 using Repositories.Entities;
 using Repositories.Repositories;
+using Services.DTOs;
+using Services.Mappers;
 
 namespace Services
 {
@@ -14,6 +15,13 @@ namespace Services
         }
         private readonly MessageRepository _messageRepository;
         private readonly ChatRepository _chatRepository;
+
+        public async Task<List<GetAllMessagesResDTO>> GetAllAsync()
+        {
+            var messages = await _messageRepository.GetAllAsync();
+            var dtos = messages.Select(m => m.ToGetAllMessagesResDTO()).ToList();
+            return dtos;
+        }
 
         public async Task<MessageWithUsersDTO?> AddAsync(Message message)
         {

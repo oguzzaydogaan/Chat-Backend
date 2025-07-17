@@ -1,8 +1,8 @@
 ﻿using Exceptions;
-using Repositories.DTOs;
 using Repositories.Entities;
-using Repositories.Mappers;
 using Repositories.Repositories;
+using Services.DTOs;
+using Services.Mappers;
 
 namespace Services
 {
@@ -16,6 +16,13 @@ namespace Services
         private readonly ChatRepository _chatRepository;
         private readonly UserRepository _userRepository;
 
+        public async Task<List<ChatDTO>> GetAllAsync()
+        {
+            var chats = await _chatRepository.GetAllAsync();
+            var dtos = chats.Select(c => c.ToChatDTO()).ToList();
+            return dtos;
+        }
+
         public async Task<Chat> AddAsync(CreateChatRequestDTO? chat)
         {
             if (chat == null || chat.UserIds.Count < 2)
@@ -27,9 +34,17 @@ namespace Services
 
             if (users.Count == 2)
             {
+                chat.Name = string.Join(", ", users.Select(u => u.Name));
                 var findChat = await _chatRepository.GetByUserIdsAsync(chat.UserIds);
                 if (findChat != null)
                     throw new ChatAlreadyExistException();
+            }
+            else
+            {
+                if (chat.Name == string.Empty)
+                {
+                    throw new Exception("Chat needs a name");
+                }
             }
 
             var created = await _chatRepository.AddAsync(chat.ToChat(users));
@@ -57,6 +72,10 @@ namespace Services
 
             if (user == null)
                 throw new UsersNotFoundException();
+            if (chat.Users.Count == 2)
+            {
+                throw new Exception("Cannot add user to personal chat");
+            }
             if (chat.Users.Any(u => u.Id == userId))
                 throw new UserAlreadyExistException();
 
@@ -72,5 +91,6 @@ namespace Services
             var chat = await _chatRepository.DeleteAsync(chatId);
             return chat;
         }
+
     }
 }

@@ -18,6 +18,13 @@ namespace backend.Controllers
         }
         private readonly MessageService _messageService;
 
+        [HttpGet]
+        public async Task<IActionResult> GetAllAsync()
+        {
+            var messages = await _messageService.GetAllAsync();
+            return Ok(messages);
+        }
+
         [HttpPost]
         public async Task<IActionResult> AddAsync([FromBody] Message message)
         {

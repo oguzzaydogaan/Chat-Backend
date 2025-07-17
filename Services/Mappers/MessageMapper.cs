@@ -1,15 +1,23 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Repositories.DTOs;
-using Repositories.Entities;
+﻿using Repositories.Entities;
+using Services.DTOs;
 
-namespace Repositories.Mappers
+namespace Services.Mappers
 {
     public static class MessageMapper
     {
+        public static GetAllMessagesResDTO ToGetAllMessagesResDTO(this Message message)
+        {
+            return new GetAllMessagesResDTO
+            {
+                Id = message.Id,
+                Content = message.Content,
+                Time = message.Time,
+                IsDeleted = message.IsDeleted,
+                UserId = message.UserId,
+                ChatId = message.ChatId
+            };
+        }
+
         public static MessageForChatDTO ToMessageForChatDTO(this Message message)
         {
             return new MessageForChatDTO

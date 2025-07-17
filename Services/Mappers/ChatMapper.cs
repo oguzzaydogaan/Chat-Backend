@@ -1,7 +1,7 @@
-﻿using Repositories.DTOs;
-using Repositories.Entities;
+﻿using Repositories.Entities;
+using Services.DTOs;
 
-namespace Repositories.Mappers
+namespace Services.Mappers
 {
     public static class ChatMapper
     {
@@ -37,6 +37,15 @@ namespace Repositories.Mappers
             {
                 Name = chat.Name,
                 Messages = chat.Messages.Select(m => m.ToMessageForChatDTO()).ToList(),
+            };
+        }
+
+        public static CreateChatResponseDTO ToCreateChatResponseDTO(this Chat chat)
+        {
+            return new CreateChatResponseDTO
+            {
+                Name = chat.Name,
+                Users = chat.Users.Select(u => u.ToUserDTO()).ToList()
             };
         }
     }

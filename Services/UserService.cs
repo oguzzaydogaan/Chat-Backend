@@ -1,9 +1,9 @@
 ﻿using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Identity;
-using Repositories.DTOs;
 using Repositories.Entities;
-using Repositories.Mappers;
 using Repositories.Repositories;
+using Services.DTOs;
+using Services.Mappers;
 
 namespace Services
 {
@@ -26,9 +26,12 @@ namespace Services
             return usersDTOs;
         }
 
-        public async Task<User?> GetByIdAsync(int userId)
+        public async Task<UserDTO> GetByIdAsync(int userId)
         {
-            return await _userRepository.GetByIdAsync(userId);
+            var user = await _userRepository.GetByIdAsync(userId);
+            if (user == null)
+                throw new Exception("User not found");
+            return user.ToUserDTO();
         }
 
         public async Task AddAsync(RegisterRequestDTO registerRequest)
@@ -75,5 +78,11 @@ namespace Services
 
             return _jwtService.Authenticate(user);
         }
+
+        public async Task<int> DeleteAsync(int id)
+        {
+            await _userRepository.DeleteAsync(id);
+            return id;
+        } 
     }
 }

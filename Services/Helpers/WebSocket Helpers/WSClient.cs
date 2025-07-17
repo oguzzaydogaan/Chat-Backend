@@ -1,8 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Repositories.DTOs;
 using Repositories.Entities;
-using Repositories.Mappers;
+using Services.DTOs;
+using Services.Mappers;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
@@ -110,7 +110,6 @@ namespace Services
             {
                 socketMessage.Type = "New-Chat";
                 var chat = await chatService.AddAsync(messageJson.Payload.Chat);
-
                 mWithUsers.Users = chat.Users;
                 socketMessage.Payload.Chat = chat.EntityToChatDTO();
             }

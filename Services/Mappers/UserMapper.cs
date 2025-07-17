@@ -1,7 +1,7 @@
-﻿using Repositories.DTOs;
-using Repositories.Entities;
+﻿using Repositories.Entities;
+using Services.DTOs;
 
-namespace Repositories.Mappers
+namespace Services.Mappers
 {
     public static class UserMapper
     {

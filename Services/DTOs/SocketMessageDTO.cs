@@ -1,11 +1,4 @@
-﻿using Repositories.Entities;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Repositories.DTOs
+﻿namespace Services.DTOs
 {
     public class SocketMessageDTO { }
     public class RequestSocketMessageDTO
@@ -18,6 +11,4 @@ namespace Repositories.DTOs
         public string? Type { get; set; }
         public ResponsePayloadDTO Payload { get; set; } = new();
     }
-
-
 }

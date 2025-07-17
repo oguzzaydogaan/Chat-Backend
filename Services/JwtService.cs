@@ -2,8 +2,8 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
-using Repositories.DTOs;
 using Repositories.Entities;
+using Services.DTOs;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -45,6 +45,7 @@ namespace Services
             {
                 Token = accessToken,
                 Id = user.Id,
+                Name = user.Name,
                 ExpiresIn = tokenExpiration
             };
         }

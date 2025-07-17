@@ -1,5 +1,6 @@
 ﻿using Exceptions;
 using Microsoft.EntityFrameworkCore;
+using Repositories.Context;
 using Repositories.Entities;
 
 namespace Repositories.Repositories
