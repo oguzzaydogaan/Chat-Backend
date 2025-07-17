@@ -10,6 +10,7 @@ namespace Services.Mappers
             return new SocketChatDTO
             {
                 Id = chat.Id,
+                Name = chat.Name,
                 Users = chat.Users.Select(u => new UserDTO { Id = u.Id, Name = u.Name })?.ToList()
             };
         }

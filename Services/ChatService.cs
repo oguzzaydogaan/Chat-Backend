@@ -54,6 +54,7 @@ namespace Services
         public async Task<ChatWithMessagesDTO> GetChatWithMessagesAsync(int chatId, int userId)
         {
             var chat = await _chatRepository.GetChatWithMessagesAndUsersAsync(chatId);
+            chat.Messages = chat.Messages.OrderBy(m => m.Time).ToList();
 
             if (!chat.Users.Any(u => u.Id == userId))
                 throw new Exception("User is not member of chat");
@@ -68,16 +69,15 @@ namespace Services
         public async Task<Chat> AddUserAsync(int chatId, int userId)
         {
             var chat = await _chatRepository.GetChatWithUsersAsync(chatId);
-            var user = await _userRepository.GetByIdAsync(userId);
-
-            if (user == null)
-                throw new UsersNotFoundException();
             if (chat.Users.Count == 2)
-            {
                 throw new Exception("Cannot add user to personal chat");
-            }
             if (chat.Users.Any(u => u.Id == userId))
                 throw new UserAlreadyExistException();
+
+            var user = await _userRepository.GetByIdAsync(userId);
+            if (user == null)
+                throw new UsersNotFoundException();
+            
 
             chat.Users.Add(user);
             chat.LastUpdate = DateTime.UtcNow;

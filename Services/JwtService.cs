@@ -21,7 +21,7 @@ namespace Services
         private readonly IOptionsMonitor<JwtBearerOptions> _authenticationOptions;
         public LoginResponseDTO Authenticate(User user)
         {
-            var key = Encoding.UTF8.GetBytes(_configuration["JwtConfig:Key"]!);
+            var key = Encoding.UTF8.GetBytes("izi-pizi-lemon-squeezy-oguz-celal-ankaraa");
             var minutes = _configuration.GetValue<int>("JwtConfig:ExpirationInMinutes");
             var tokenExpiration = DateTime.UtcNow.AddMinutes(minutes);
             var tokenDescriptor = new SecurityTokenDescriptor
