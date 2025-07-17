@@ -1,5 +1,7 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using Exceptions;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Repositories.Entities;
 using Services;
 
@@ -17,7 +19,7 @@ namespace backend.Controllers
         private readonly MessageService _messageService;
 
         [HttpPost]
-        public async Task<IActionResult> AddMessageAsync([FromBody] Message message)
+        public async Task<IActionResult> AddAsync([FromBody] Message message)
         {
             if (message == null)
                 return BadRequest("Message cannot be null.");
@@ -28,19 +30,31 @@ namespace backend.Controllers
                 await _messageService.AddAsync(message);
                 return StatusCode(201);
             }
+            catch(ChatNotFoundException ex)
+            {
+                return NotFound(ex.Message);
+            }
+            catch (UserNotMemberOfChatException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (DbUpdateException)
+            {
+                return StatusCode(500, "Database error occurred while adding message");
+            }
             catch (Exception ex)
             {
-                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+                return StatusCode(500, ex.Message);
             }
         }
         [HttpDelete("{messageId}")]
-        public async Task<IActionResult> DeleteMessageAsync(int messageId)
+        public async Task<IActionResult> DeleteAsync(int messageId)
         {
             if (messageId <= 0)
                 return BadRequest("Invalid message ID.");
             try
             {
-                await _messageService.DeleteMessageAsync(messageId);
+                await _messageService.DeleteAsync(messageId);
                 return NoContent();
             }
             catch (Exception ex)

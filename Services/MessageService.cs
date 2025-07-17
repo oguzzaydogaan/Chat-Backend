@@ -23,6 +23,7 @@ namespace Services
             var chat = await _chatRepository.GetChatWithUsersAsync(message.ChatId);
             if (!chat.Users.Any(u => u.Id == message.UserId))
                 throw new UserNotMemberOfChatException();
+
             chat.LastUpdate = message.Time;
             await _chatRepository.UpdateAsync(chat);
             await _messageRepository.AddAsync(message);
@@ -33,9 +34,13 @@ namespace Services
             };
             return mWithUsers;
         }
-        public async Task<MessageWithUsersDTO> DeleteMessageAsync(int messageId)
+        public async Task<MessageWithUsersDTO> DeleteAsync(int messageId)
         {
-            var message = await _messageRepository.DeleteMessageAsync(messageId);
+            var message = await _messageRepository.GetMessageWithChatAsync(messageId);
+            message.Content = "This message was deleted";
+            message.IsDeleted = true;
+            message.Chat!.LastUpdate = DateTime.UtcNow;
+            await _messageRepository.UpdateAsync(message);
             var mWithUsers = new MessageWithUsersDTO
             {
                 Users = message.Chat!.Users,

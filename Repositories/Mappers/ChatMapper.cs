@@ -30,5 +30,14 @@ namespace Repositories.Mappers
                 Name = chat.Name
             };
         }
+
+        public static ChatWithMessagesDTO ToChatWithMessagesDTO(this Chat chat)
+        {
+            return new ChatWithMessagesDTO
+            {
+                Name = chat.Name,
+                Messages = chat.Messages.Select(m => m.ToMessageForChatDTO()).ToList(),
+            };
+        }
     }
 }

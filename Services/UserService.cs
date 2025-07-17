@@ -19,7 +19,7 @@ namespace Services
         private readonly PasswordHasher<User> _passwordHasher;
         private readonly JwtService _jwtService;
 
-        public async Task<List<UserDTO>> GetAllUsersAsync()
+        public async Task<List<UserDTO>> GetAllAsync()
         {
             var users = await _userRepository.GetAllAsync();
             var usersDTOs = users.Select(u => u.ToUserDTO()).ToList();
@@ -52,15 +52,12 @@ namespace Services
         {
             var user = await _userRepository.GetChatsAsync(userId);
             if (user.Chats == null)
-            {
                 return null;
-            }
             var chats = user!.Chats.Select(c =>
             {
                 if (c.Users.Count == 2)
-                {
                     c.Name = c.Users.FirstOrDefault(u => u.Id != userId)?.Name ?? throw new Exception("Other user not found");
-                }
+                
                 return c.ToChatDTO();
             }).ToList();
             return chats;

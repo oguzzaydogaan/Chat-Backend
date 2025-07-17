@@ -1,7 +1,5 @@
-﻿using Exceptions;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.IdentityModel.Tokens;
 using Repositories.DTOs;
 using Repositories.Entities;
 using Repositories.Mappers;
@@ -104,32 +102,22 @@ namespace Services
                 }
                 int mid = (int)messageJson.Payload.MessageId;
                 socketMessage.Type = "Delete-Message";
-                mWithUsers = await messageService.DeleteMessageAsync(mid);
-                if (mWithUsers == null || mWithUsers.Message == null)
-                {
-                    throw new ArgumentNullException("Message couldn't delete");
-                }
+                mWithUsers = await messageService.DeleteAsync(mid);
+
                 socketMessage.Payload.Message = mWithUsers.Message.ToMessageForChatDTO();
             }
             else if (messageJson.Type == "New-Chat")
             {
                 socketMessage.Type = "New-Chat";
-                if (messageJson.Payload.UserIds == null)
-                {
-                    throw new ArgumentNullException("Chat couldn't create");
-                }
-                var chat = await chatService.AddChatAsync(messageJson.Payload.UserIds);
-                if (chat == null)
-                {
-                    throw new ChatNotFoundException();
-                }
+                var chat = await chatService.AddAsync(messageJson.Payload.Chat);
+
                 mWithUsers.Users = chat.Users;
                 socketMessage.Payload.Chat = chat.EntityToChatDTO();
             }
             else if (messageJson.Type == "New-UserToChat")
             {
                 socketMessage.Type = "New-UserToChat";
-                var chat = await chatService.AddUserToChatAsync(messageJson.Payload.ChatId, messageJson.Payload.UserId);
+                var chat = await chatService.AddUserAsync(messageJson.Payload.ChatId, messageJson.Payload.UserId);
                 mWithUsers.Users = chat.Users;
                 socketMessage.Payload.Chat = chat.EntityToChatDTO();
             }

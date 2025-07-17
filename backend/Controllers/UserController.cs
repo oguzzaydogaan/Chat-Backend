@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Repositories.DTOs;
-using Repositories.Entities;
 using Services;
 
 namespace backend.Controllers
@@ -19,9 +18,9 @@ namespace backend.Controllers
         private readonly UserService _userService;
 
         [HttpGet]
-        public async Task<IActionResult> GetAllUsers()
+        public async Task<IActionResult> GetAllAsync()
         {
-            var users = await _userService.GetAllUsersAsync();
+            var users = await _userService.GetAllAsync();
             return Ok(users);
         }
 
@@ -36,7 +35,7 @@ namespace backend.Controllers
             }
             catch(DbUpdateException)
             {
-                return StatusCode(500, "An error occured");
+                return StatusCode(500, "Database error occured while adding user");
             }
             catch (Exception ex)
             {
@@ -45,16 +44,20 @@ namespace backend.Controllers
         }
 
         [HttpGet("{userId}/chats")]
-        public async Task<IActionResult> GetUsersChatsAsync(int userId)
+        public async Task<IActionResult> GetChatsAsync(int userId)
         {
             try
             {
                 var chats = await _userService.GetChatsAsync(userId);
                 return Ok(chats);
             }
+            catch (DbUpdateException)
+            {
+                return StatusCode(500, "Database error occured while getting chats");
+            }
             catch (Exception ex)
             {
-                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+                return StatusCode(400, ex.Message);
             }
         }
 
@@ -69,7 +72,7 @@ namespace backend.Controllers
             }
             catch (DbUpdateException)
             {
-                return StatusCode(500, "An error occured");
+                return StatusCode(500, "Database error occured");
             }
             catch (Exception ex)
             {

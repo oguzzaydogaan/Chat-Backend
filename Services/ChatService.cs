@@ -1,5 +1,4 @@
 ﻿using Exceptions;
-using Microsoft.EntityFrameworkCore;
 using Repositories.DTOs;
 using Repositories.Entities;
 using Repositories.Mappers;
@@ -17,48 +16,61 @@ namespace Services
         private readonly ChatRepository _chatRepository;
         private readonly UserRepository _userRepository;
 
-        public async Task<Chat?> AddChatAsync(CreateChatRequestDTO chat)
+        public async Task<Chat> AddAsync(CreateChatRequestDTO? chat)
         {
-            if (chat.UserIds.Count < 2)
-            {
+            if (chat == null || chat.UserIds.Count < 2)
                 throw new Exception("At least two users are required to create a chat");
-            }
+
             var users = await _userRepository.GetByListOfIdsAsync(chat.UserIds);
             if (users == null || users.Count != chat.UserIds.Count)
-            {
                 throw new Exception("Some users not found");
-            }
+
             if (users.Count == 2)
             {
-                var findChat = await _chatRepository
-                    .Search(c => c.Users.Count == users.Count && c.Users.All(u => users.Contains(u)));
-
+                var findChat = await _chatRepository.GetByUserIdsAsync(chat.UserIds);
                 if (findChat != null)
-                {
                     throw new ChatAlreadyExistException();
-                }
             }
 
             var created = await _chatRepository.AddAsync(chat.ToChat(users));
             return created;
         }
 
-        public async Task<ChatWithMessagesDTO?> GetChatMessagesAsync(int chatId, int userId)
+        public async Task<ChatWithMessagesDTO> GetChatWithMessagesAsync(int chatId, int userId)
         {
-            var chat = await _chatRepository.GetMessagesAsync(chatId, userId);
-            if (chat == null)
-                throw new Exception("Chat not found.");
+            var chat = await _chatRepository.GetChatWithMessagesAndUsersAsync(chatId);
+
+            if (!chat.Users.Any(u => u.Id == userId))
+                throw new Exception("User is not member of chat");
+
+            if (chat.Users.Count == 2)
+                chat.Name = chat.Users.FirstOrDefault(u => u.Id != userId)?.Name ?? throw new Exception("Other user not found");
+
+            var dto = chat.ToChatWithMessagesDTO();
+            return dto;
+        }
+
+        public async Task<Chat> AddUserAsync(int chatId, int userId)
+        {
+            var chat = await _chatRepository.GetChatWithUsersAsync(chatId);
+            var user = await _userRepository.GetByIdAsync(userId);
+
+            if (user == null)
+                throw new UsersNotFoundException();
+            if (chat.Users.Any(u => u.Id == userId))
+                throw new UserAlreadyExistException();
+
+            chat.Users.Add(user);
+            chat.LastUpdate = DateTime.UtcNow;
+
+            var updated = await _chatRepository.UpdateAsync(chat);
+            return updated;
+        }
+
+        public async Task<Chat> DeleteAsync(int chatId)
+        {
+            var chat = await _chatRepository.DeleteAsync(chatId);
             return chat;
-        }
-
-        public async Task<Chat> AddUserToChatAsync(int chatId, int userId)
-        {
-            return await _chatRepository.AddUserToChat(chatId, userId);
-        }
-
-        public async Task DeleteChatAsync(int chatId)
-        {
-            await _chatRepository.DeleteChatAsync(chatId);
         }
     }
 }

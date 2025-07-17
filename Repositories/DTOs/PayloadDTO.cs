@@ -13,7 +13,7 @@ namespace Repositories.DTOs
         public int ChatId { get; set; }
         public string? Content { get; set; }
         public int? MessageId { get; set; }
-        public List<int>? UserIds { get; set; }
+        public CreateChatRequestDTO? Chat { get; set; }
     }
 
     public class ResponsePayloadDTO

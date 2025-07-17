@@ -1,43 +1,14 @@
 ﻿using Exceptions;
 using Microsoft.EntityFrameworkCore;
-using Repositories.DTOs;
 using Repositories.Entities;
-using Repositories.Mappers;
 
 namespace Repositories.Repositories
 {
     public class ChatRepository : BaseRepository<Chat>
     {
-        private readonly UserRepository _userRepository;
-        public ChatRepository(RepositoryContext context, UserRepository userRepository)
+        public ChatRepository(RepositoryContext context)
             : base(context)
         {
-            _userRepository = userRepository;
-        }
-
-        public async Task<Chat> AddUserToChat(int chatId, int userId)
-        {
-            var chat = await DbSet
-                .Include(c => c.Users)
-                .FirstOrDefaultAsync(c => c.Id == chatId);
-
-            if (chat == null)
-                throw new ChatNotFoundException();
-
-            var user = await _userRepository
-                .GetByIdAsync(userId);
-
-            if (user == null)
-                throw new UsersNotFoundException();
-
-            if (chat.Users.Any(u => u.Id == userId))
-                throw new UserAlreadyExistException();
-
-            chat.Users.Add(user);
-            chat.LastUpdate = DateTime.UtcNow;
-            
-
-            return await base.UpdateAsync(chat);
         }
 
         public async Task<Chat> GetChatWithUsersAsync(int chatId)
@@ -50,43 +21,28 @@ namespace Repositories.Repositories
             return chat;
         }
 
-        public async Task<ChatWithMessagesDTO?> GetMessagesAsync(int chatId, int userId)
+        public async Task<Chat?> GetByUserIdsAsync(List<int> userIds)
         {
             var chat = await DbSet
                 .Include(c => c.Users)
+                .FirstOrDefaultAsync(c => c.Users.Count == userIds.Count && c.Users.All(u => userIds.Contains(u.Id)));
+            return chat;
+        }
+
+        public async Task<Chat> GetChatWithMessagesAndUsersAsync(int chatId)
+        {
+            var chat = await DbSet
+                .Include(c => c.Users)
+                .Include(c => c.Messages)
+                    .ThenInclude(m => m.User)
                 .FirstOrDefaultAsync(c => c.Id == chatId);
 
             if (chat == null)
-                throw new Exception("Chat bulunamadı.");
+                throw new Exception("Chat cannot found");
 
-            if (!chat.Users.Any(u => u.Id == userId))
-                throw new Exception("Kullanıcı bu chat'e üye değil.");
+            chat.Messages = chat.Messages.OrderByDescending(m => m.Time).ToList();
 
-            try
-            {
-                var messages = await _context.Set<Message>()
-                .Where(m => m.ChatId == chatId && m.IsDeleted == false)
-                .Include(m => m.User)
-                .OrderBy(m => m.Time)
-                .Select(m => m.ToMessageForChatDTO())
-                .ToListAsync();
-
-                string name = string.Join(string.Empty, chat!.Users
-                    .Where(u => u.Id != userId)
-                    .Select(u => u.Name + ", "));
-
-                name = name.TrimEnd(',', ' ');
-
-                return new ChatWithMessagesDTO
-                {
-                    Name = name,
-                    Messages = messages
-                };
-            }
-            catch (Exception ex)
-            {
-                throw new Exception("An error occurred while retrieving chat messages.", ex);
-            }
+            return chat;
         }
     }
 }

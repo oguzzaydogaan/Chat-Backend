@@ -19,7 +19,7 @@ namespace Repositories.DTOs
     public class MessageWithUsersDTO
     {
         public ICollection<User>? Users { get; set; }
-        public Message? Message { get; set; }
+        public Message Message { get; set; } = new Message();
     }
 
     public class BytesWithUsersDTO
