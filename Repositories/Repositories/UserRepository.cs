@@ -35,5 +35,27 @@ namespace Repositories.Repositories
             user.Chats = user.Chats.OrderByDescending(c => c.LastUpdate).ToList();
             return user;
         }
+
+        public async Task<List<Chat>> SearchChatsAsync(int userId, string searchTerm)
+        {
+            if (string.IsNullOrWhiteSpace(searchTerm))
+            {
+                var user = await GetChatsAsync(userId);
+                return user.Chats.ToList();
+            }
+
+            var chats = await DbSet
+                .Where(u => u.Id == userId)
+                .SelectMany(u => u.Chats)
+                .Include(c => c.Users)
+                .Where((c) =>
+                    c.Users.Count == 2
+                        ? c.Users.First(u => u.Id != userId).Name.ToLower().Contains(searchTerm.ToLower())
+                        : c.Name.ToLower().Contains(searchTerm.ToLower())
+                )
+                .ToListAsync();
+
+            return chats;
+        }
     }
 }

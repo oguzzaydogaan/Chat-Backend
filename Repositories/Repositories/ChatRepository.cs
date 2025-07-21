@@ -30,6 +30,14 @@ namespace Repositories.Repositories
             return chat;
         }
 
+        public async Task<List<Chat>> SearchAsync(string searchTerm)
+        {
+            if (string.IsNullOrWhiteSpace(searchTerm))
+                return await DbSet.ToListAsync();
+            return await DbSet
+                .Where(c => c.Name.Contains(searchTerm))
+                .ToListAsync();
+        }
         public async Task<Chat> GetChatWithMessagesAndUsersAsync(int chatId)
         {
             var chat = await DbSet

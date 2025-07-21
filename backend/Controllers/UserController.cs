@@ -123,6 +123,24 @@ namespace backend.Controllers
             }
         }
 
-        
+        [HttpGet("{userId}/chats/search")]
+        public async Task<IActionResult> SearchAsync(int userId, [FromQuery] string searchTerm)
+        {
+            try
+            {
+                var chats = await _userService.SearchChatsAsync(userId, searchTerm);
+                return Ok(chats);
+            }
+            catch (DbUpdateException)
+            {
+                return StatusCode(500, "Database error occurred while searching chats");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+
     }
 }

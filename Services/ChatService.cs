@@ -34,10 +34,10 @@ namespace Services
 
             if (users.Count == 2)
             {
-                chat.Name = string.Join(", ", users.Select(u => u.Name));
                 var findChat = await _chatRepository.GetByUserIdsAsync(chat.UserIds);
                 if (findChat != null)
                     throw new ChatAlreadyExistException();
+                chat.Name = string.Join(", ", users.Select(u => u.Name));
             }
             else
             {
@@ -77,7 +77,7 @@ namespace Services
             var user = await _userRepository.GetByIdAsync(userId);
             if (user == null)
                 throw new UsersNotFoundException();
-            
+
 
             chat.Users.Add(user);
             chat.LastUpdate = DateTime.UtcNow;
@@ -92,5 +92,10 @@ namespace Services
             return chat;
         }
 
+        public async Task<List<ChatDTO>> SearchAsync(string searchTerm)
+        {
+            var chats = await _chatRepository.SearchAsync(searchTerm);
+            return chats.Select(c => c.ToChatDTO()).ToList();
+        }
     }
 }

@@ -60,7 +60,7 @@ namespace Services
             {
                 if (c.Users.Count == 2)
                     c.Name = c.Users.FirstOrDefault(u => u.Id != userId)?.Name ?? throw new Exception("Other user not found");
-                
+
                 return c.ToChatDTO();
             }).ToList();
             return chats;
@@ -83,6 +83,19 @@ namespace Services
         {
             await _userRepository.DeleteAsync(id);
             return id;
-        } 
+        }
+
+        public async Task<List<ChatDTO>> SearchChatsAsync(int userId, string searchTerm)
+        {
+            var chats = await _userRepository.SearchChatsAsync(userId, searchTerm);
+            var dtos = chats.Select(c =>
+            {
+                if (c.Users.Count == 2)
+                    c.Name = c.Users.FirstOrDefault(u => u.Id != userId)?.Name ?? throw new Exception("Other user not found");
+
+                return c.ToChatDTO();
+            }).ToList();
+            return dtos;
+        }
     }
 }
