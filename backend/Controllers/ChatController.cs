@@ -49,6 +49,10 @@ namespace backend.Controllers
                 var chat = await _chatService.GetChatWithMessagesAsync(chatId, userId);
                 return Ok(JsonSerializer.Serialize(chat));
             }
+            catch (NotSupportedException)
+            {
+                return BadRequest("JSON serialization error");
+            }
             catch (DbUpdateException)
             {
                 return StatusCode(500, "Database error occurred while retrieving chat");

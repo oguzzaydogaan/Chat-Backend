@@ -20,8 +20,20 @@ namespace backend.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAllAsync()
         {
-            var users = await _userService.GetAllAsync();
-            return Ok(users);
+            try
+            {
+                var users = await _userService.GetAllAsync();
+                return Ok(users);
+            }
+            catch (DbUpdateException)
+            {
+                return StatusCode(500, "Database error occurred while retrieving users");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(400, ex.Message);
+            }
+
         }
 
         [HttpGet("{id}")]

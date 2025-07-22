@@ -7,7 +7,7 @@ namespace Services
     public class WSClientListManager
     {
         private readonly IServiceScopeFactory _serviceScopeFactory;
-        public ConcurrentDictionary<int, WSClient> Clients = new ConcurrentDictionary<int, WSClient>();
+        public ConcurrentDictionary<int, WSClient> Clients = new();
         public WSClientListManager(IServiceScopeFactory serviceScopeFactory)
         {
             _serviceScopeFactory = serviceScopeFactory;
