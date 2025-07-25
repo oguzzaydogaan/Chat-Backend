@@ -12,7 +12,7 @@ using Repositories.Context;
 namespace Repositories.Migrations
 {
     [DbContext(typeof(RepositoryContext))]
-    [Migration("20250717072036_Initial")]
+    [Migration("20250725074147_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -20,7 +20,7 @@ namespace Repositories.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.6")
+                .HasAnnotation("ProductVersion", "9.0.7")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -76,6 +76,9 @@ namespace Repositories.Migrations
                         .HasColumnType("text");
 
                     b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsSystem")
                         .HasColumnType("boolean");
 
                     b.Property<DateTime>("Time")

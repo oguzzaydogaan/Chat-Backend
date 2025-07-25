@@ -22,7 +22,7 @@ namespace Repositories.Repositories
             return await DbSet.FindAsync(id);
         }
 
-        public virtual async Task<TEntity> AddAsync(TEntity entity)
+        public async Task<TEntity> AddAsync(TEntity entity)
         {
             await DbSet.AddAsync(entity);
             await _context.SaveChangesAsync();

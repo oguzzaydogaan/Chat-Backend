@@ -91,7 +91,7 @@ namespace backend.Controllers
                 return BadRequest("Invalid chat ID or user ID");
             try
             {
-                var updatedChat = await _chatService.AddUserAsync(chatId, userId);
+                var updatedChat = await _chatService.AddUserAsync(chatId, userId, null);
                 return Ok();
             }
             catch (UsersNotFoundException ex)
@@ -137,6 +137,24 @@ namespace backend.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, ex.Message);
+            }
+        }
+
+        [HttpGet("{chatId}/users/search")]
+        public async Task<IActionResult> SearchUsersAsync(int chatId, [FromQuery] string searchTerm)
+        {
+            try
+            {
+                var users = await _chatService.SearchUsersAsync(chatId, searchTerm);
+                return Ok(JsonSerializer.Serialize(users));
+            }
+            catch (DbUpdateException)
+            {
+                return StatusCode(500, "Database error occurred while searching chats");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
             }
         }
     }

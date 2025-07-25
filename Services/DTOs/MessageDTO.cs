@@ -19,6 +19,7 @@ namespace Services.DTOs
         public bool IsDeleted { get; set; }
         public int UserId { get; set; }
         public int ChatId { get; set; }
+        public bool IsSystem { get; set; }
     }
 
     public class MessageForChatDTO
@@ -28,6 +29,8 @@ namespace Services.DTOs
         public DateTime Time { get; set; }
         public UserDTO? Sender { get; set; }
         public bool IsDeleted { get; set; }
+        public bool IsSystem { get; set; }
+
         public int ChatId { get; set; }
     }
 

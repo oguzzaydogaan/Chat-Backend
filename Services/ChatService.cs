@@ -10,11 +10,14 @@ namespace Services
     {
         private readonly ChatRepository _chatRepository;
         private readonly UserRepository _userRepository;
+        private readonly MessageRepository _messageRepository;
+
         private readonly IMapper _mapper;
-        public ChatService(ChatRepository chatRepository, UserRepository userRepository, IMapper mapper)
+        public ChatService(ChatRepository chatRepository, UserRepository userRepository, MessageRepository messageRepository, IMapper mapper)
         {
             _chatRepository = chatRepository;
             _userRepository = userRepository;
+            _messageRepository = messageRepository;
             _mapper = mapper;
         }
 
@@ -68,7 +71,7 @@ namespace Services
             return dto;
         }
 
-        public async Task<Chat> AddUserAsync(int chatId, int userId)
+        public async Task<(Chat,Message)> AddUserAsync(int chatId, int userId, UserDTO? sender)
         {
             var chat = await _chatRepository.GetChatWithUsersAsync(chatId);
             if (chat.Users.Count == 2)
@@ -80,12 +83,20 @@ namespace Services
             if (user == null)
                 throw new UsersNotFoundException();
 
-
             chat.Users.Add(user);
             chat.LastUpdate = DateTime.UtcNow;
 
             var updated = await _chatRepository.UpdateAsync(chat);
-            return updated;
+            var message = new Message()
+            {
+                UserId = sender.Id,
+                ChatId = chatId,
+                Content = $"{sender.Name} added {user.Name}.",
+                IsSystem = true
+            };
+            message = await _messageRepository.AddAsync(message);
+
+            return (chat, message);
         }
 
         public async Task<Chat> DeleteAsync(int chatId)
@@ -98,6 +109,14 @@ namespace Services
         {
             var chats = await _chatRepository.SearchAsync(searchTerm);
             return chats.Select(c => _mapper.Map<ChatDTO>(c)).ToList();
+        }
+
+        public async Task<List<UserDTO>> SearchUsersAsync(int chatId, string searchTerm)
+        {
+            var users = await _chatRepository.SearchUsersAsync(chatId, searchTerm);
+
+            var dtos = users.Select(u => _mapper.Map<UserDTO>(u)).ToList();
+            return dtos;
         }
     }
 }

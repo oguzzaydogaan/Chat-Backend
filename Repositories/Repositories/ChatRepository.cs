@@ -53,5 +53,19 @@ namespace Repositories.Repositories
 
             return chat;
         }
+
+        public async Task<List<User>> SearchUsersAsync(int chatId, string searchTerm)
+        {
+            if (string.IsNullOrWhiteSpace(searchTerm))
+            {
+                var chat = await GetChatWithUsersAsync(chatId);
+                return chat.Users.ToList();
+            }
+            var users = await DbSet.Where(c => c.Id == chatId)
+                .SelectMany(u => u.Users)
+                .Where((u) => u.Name.ToLower().Contains(searchTerm.ToLower()))
+                .ToListAsync();
+            return users;
+        }
     }
 }

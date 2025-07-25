@@ -115,16 +115,19 @@ namespace Services
             else if (messageJson.Type == "New-Chat")
             {
                 socketMessage.Type = "New-Chat";
+                socketMessage.Sender = messageJson.Sender;
                 var chat = await chatService.AddAsync(messageJson.Payload.Chat);
                 mWithUsers.Users = chat.Users;
                 socketMessage.Payload.Chat = _mapper.Map<SocketChatDTO>(chat);
             }
-            else if (messageJson.Type == "New-UserToChat")
+            else if (messageJson.Type == "User-Join")
             {
-                socketMessage.Type = "New-UserToChat";
-                var chat = await chatService.AddUserAsync(messageJson.Payload.ChatId, messageJson.Payload.UserId);
-                mWithUsers.Users = chat.Users;
-                socketMessage.Payload.Chat = _mapper.Map<SocketChatDTO>(chat);
+                socketMessage.Type = "User-Join";
+                socketMessage.Sender = messageJson.Sender;
+                var res = await chatService.AddUserAsync(messageJson.Payload.ChatId, messageJson.Payload.UserId, messageJson.Sender);
+                mWithUsers.Users = res.Item1.Users;
+                socketMessage.Payload.Message = _mapper.Map<MessageForChatDTO>(res.Item2);
+                socketMessage.Payload.Chat = _mapper.Map<SocketChatDTO>(res.Item1);
             }
 
             var json = JsonSerializer.Serialize(socketMessage);
