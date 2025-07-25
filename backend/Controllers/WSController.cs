@@ -20,6 +20,7 @@ namespace backend.Controllers
         {
             if (HttpContext.WebSockets.IsWebSocketRequest)
             {
+                
                 var webSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
                 string? token = HttpContext.Request.Query["accessToken"];
 

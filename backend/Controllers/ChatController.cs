@@ -1,11 +1,10 @@
-﻿using Exceptions;
+﻿using AutoMapper;
+using Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Repositories.Entities;
 using Services;
 using Services.DTOs;
-using Services.Mappers;
 using System.Text.Json;
 
 namespace backend.Controllers
@@ -15,11 +14,13 @@ namespace backend.Controllers
     [Authorize]
     public class ChatController : ControllerBase
     {
-        public ChatController(ChatService chatService)
+        private readonly ChatService _chatService;
+        private readonly IMapper _mapper;
+        public ChatController(ChatService chatService, IMapper mapper)
         {
             _chatService = chatService;
+            _mapper = mapper;
         }
-        private readonly ChatService _chatService;
 
         [HttpGet]
         public async Task<IActionResult> GetAllAsync()
@@ -68,7 +69,7 @@ namespace backend.Controllers
             try
             {
                 var chat = await _chatService.AddAsync(dto);
-                return Ok(chat.ToCreateChatResponseDTO());
+                return Ok(_mapper.Map<CreateChatResponseDTO>(chat));
             }
             catch (ChatAlreadyExistException ex)
             {

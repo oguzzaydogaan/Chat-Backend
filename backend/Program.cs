@@ -5,11 +5,14 @@ using Microsoft.IdentityModel.Tokens;
 using Repositories.Context;
 using Repositories.Repositories;
 using Services;
+using Services.AutoMapper;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<RepositoryContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddAutoMapper(typeof(UserProfile));
 
 builder.Services.AddScoped<DbContext, RepositoryContext>();
 
@@ -51,6 +54,7 @@ builder.Services.AddCors(options =>
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
 
 var app = builder.Build();
 

@@ -29,5 +29,6 @@
     {
         public string? Name { get; set; }
         public ICollection<MessageForChatDTO>? Messages { get; set; }
+        public List<UserDTO>? Users { get; set; }
     }
 }

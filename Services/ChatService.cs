@@ -1,25 +1,28 @@
-﻿using Exceptions;
+﻿using AutoMapper;
+using Exceptions;
 using Repositories.Entities;
 using Repositories.Repositories;
 using Services.DTOs;
-using Services.Mappers;
 
 namespace Services
 {
     public class ChatService
     {
-        public ChatService(ChatRepository chatRepository, UserRepository userRepository)
+        private readonly ChatRepository _chatRepository;
+        private readonly UserRepository _userRepository;
+        private readonly IMapper _mapper;
+        public ChatService(ChatRepository chatRepository, UserRepository userRepository, IMapper mapper)
         {
             _chatRepository = chatRepository;
             _userRepository = userRepository;
+            _mapper = mapper;
         }
-        private readonly ChatRepository _chatRepository;
-        private readonly UserRepository _userRepository;
+
 
         public async Task<List<ChatDTO>> GetAllAsync()
         {
             var chats = await _chatRepository.GetAllAsync();
-            var dtos = chats.Select(c => c.ToChatDTO()).ToList();
+            var dtos = chats.Select(c => _mapper.Map<ChatDTO>(c)).ToList();
             return dtos;
         }
 
@@ -36,18 +39,17 @@ namespace Services
             {
                 var findChat = await _chatRepository.GetByUserIdsAsync(chat.UserIds);
                 if (findChat != null)
-                    throw new ChatAlreadyExistException();
-                chat.Name = string.Join(", ", users.Select(u => u.Name));
-            }
-            else
-            {
-                if (chat.Name == string.Empty)
-                {
-                    throw new Exception("Chat needs a name");
-                }
+                    throw new ChatAlreadyExistException(findChat.Id);
             }
 
-            var created = await _chatRepository.AddAsync(chat.ToChat(users));
+            var entity = _mapper.Map<Chat>(chat, opt =>
+            {
+                opt.Items["Users"] = users;
+            });
+            if (entity.Name == string.Empty)
+                throw new Exception("Chat needs a name");
+
+            var created = await _chatRepository.AddAsync(entity);
             return created;
         }
 
@@ -62,7 +64,7 @@ namespace Services
             if (chat.Users.Count == 2)
                 chat.Name = chat.Users.FirstOrDefault(u => u.Id != userId)?.Name ?? throw new Exception("Other user not found");
 
-            var dto = chat.ToChatWithMessagesDTO();
+            var dto = _mapper.Map<ChatWithMessagesDTO>(chat);
             return dto;
         }
 
@@ -95,7 +97,7 @@ namespace Services
         public async Task<List<ChatDTO>> SearchAsync(string searchTerm)
         {
             var chats = await _chatRepository.SearchAsync(searchTerm);
-            return chats.Select(c => c.ToChatDTO()).ToList();
+            return chats.Select(c => _mapper.Map<ChatDTO>(c)).ToList();
         }
     }
 }

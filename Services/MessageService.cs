@@ -1,25 +1,28 @@
-﻿using Exceptions;
+﻿using AutoMapper;
+using Exceptions;
 using Repositories.Entities;
 using Repositories.Repositories;
 using Services.DTOs;
-using Services.Mappers;
 
 namespace Services
 {
     public class MessageService
     {
-        public MessageService(MessageRepository messageRepository, ChatRepository chatRepository)
+        private readonly MessageRepository _messageRepository;
+        private readonly ChatRepository _chatRepository;
+        private readonly IMapper _mapper;
+        public MessageService(MessageRepository messageRepository, ChatRepository chatRepository, IMapper mapper)
         {
             _messageRepository = messageRepository;
             _chatRepository = chatRepository;
+            _mapper = mapper;
         }
-        private readonly MessageRepository _messageRepository;
-        private readonly ChatRepository _chatRepository;
+        
 
         public async Task<List<GetAllMessagesResDTO>> GetAllAsync()
         {
             var messages = await _messageRepository.GetAllAsync();
-            var dtos = messages.Select(m => m.ToGetAllMessagesResDTO()).ToList();
+            var dtos = messages.Select(m => _mapper.Map<GetAllMessagesResDTO>(m)).ToList();
             return dtos;
         }
 
