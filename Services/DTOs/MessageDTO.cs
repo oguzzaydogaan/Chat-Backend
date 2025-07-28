@@ -4,11 +4,17 @@ namespace Services.DTOs
 {
     public class MessageDTO
     {
+        public int Id { get; set; }
+        public string? Content { get; set; }
+        public DateTime Time { get; set; }
+        public bool IsDeleted { get; set; }
+        public int UserId { get; set; }
+        public int ChatId { get; set; }
+        public bool IsSystem { get; set; }
     }
 
     public class CreateMessageRequestDTO
     {
-
     }
 
     public class GetAllMessagesResDTO

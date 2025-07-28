@@ -93,11 +93,10 @@ namespace Services
             if (messageJson.Type == "Send-Message")
             {
                 socketMessage.Type = "Send-Message";
-                mWithUsers = await messageService.AddAsync(_mapper.Map<Message>(messageJson.Payload));
-                if (mWithUsers == null || mWithUsers.Message == null)
-                {
-                    throw new ArgumentNullException("Message couldn't send");
-                }
+                var message = await messageService.AddAsync(_mapper.Map<Message>(messageJson.Payload));
+
+                mWithUsers.Message = message;
+                mWithUsers.Users = message.Chat!.Users;
                 socketMessage.Payload.Message = _mapper.Map<MessageForChatDTO>(mWithUsers.Message);
             }
             else if (messageJson.Type == "Delete-Message")
@@ -108,7 +107,9 @@ namespace Services
                 }
                 int mid = (int)messageJson.Payload.MessageId;
                 socketMessage.Type = "Delete-Message";
-                mWithUsers = await messageService.DeleteAsync(mid);
+                var message = await messageService.SoftDeleteAsync(mid);
+                mWithUsers.Message = message;
+                mWithUsers.Users = message.Chat!.Users;
 
                 socketMessage.Payload.Message = _mapper.Map<MessageForChatDTO>(mWithUsers.Message);
             }

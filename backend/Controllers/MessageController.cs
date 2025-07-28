@@ -21,8 +21,44 @@ namespace backend.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAllAsync()
         {
-            var messages = await _messageService.GetAllAsync();
-            return Ok(messages);
+            try
+            {
+                var messages = await _messageService.GetAllAsync();
+                return Ok(messages);
+            }
+            catch (DbUpdateException)
+            {
+                return StatusCode(500, "Database error occurred while adding message");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            
+        }
+
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetByIdAsync(int id)
+        {
+            if (id <= 0)
+                return BadRequest("Invalid format");
+            try
+            {
+                var message = await _messageService.GetByIdAsync(id);
+                return Ok(message);
+            }
+            catch(KeyNotFoundException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (DbUpdateException)
+            {
+                return StatusCode(500, "Database error occurred while adding message");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
         }
 
         [HttpPost]
@@ -54,14 +90,14 @@ namespace backend.Controllers
                 return StatusCode(500, ex.Message);
             }
         }
-        [HttpDelete("{messageId}")]
-        public async Task<IActionResult> DeleteAsync(int messageId)
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteAsync(int id)
         {
-            if (messageId <= 0)
+            if (id <= 0)
                 return BadRequest("Invalid message ID.");
             try
             {
-                await _messageService.DeleteAsync(messageId);
+                await _messageService.DeleteAsync(id);
                 return NoContent();
             }
             catch (Exception ex)

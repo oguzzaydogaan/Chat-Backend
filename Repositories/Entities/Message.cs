@@ -1,8 +1,7 @@
 ﻿namespace Repositories.Entities
 {
-    public class Message
+    public class Message : BaseEntity
     {
-        public int Id { get; set; }
         public string Content { get; set; } = string.Empty;
         public DateTime Time { get; set; } = DateTime.UtcNow;
         public int ChatId { get; set; }

@@ -37,14 +37,18 @@ namespace backend.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetAsync(int id)
+        public async Task<IActionResult> GetByIdAsync(int id)
         {
             if (id <= 0)
-                return BadRequest("Invalid user ID");
+                return BadRequest("Invalid format");
             try
             {
                 var user = await _userService.GetByIdAsync(id);
                 return Ok(user);
+            }
+            catch(KeyNotFoundException ex)
+            {
+                return BadRequest(ex.Message);
             }
             catch (DbUpdateException)
             {
@@ -52,7 +56,7 @@ namespace backend.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(400, ex.Message);
+                return StatusCode(500, ex.Message);
             }
         }
 
@@ -62,7 +66,7 @@ namespace backend.Controllers
         {
             try
             {
-                await _userService.AddAsync(registerRequest);
+                await _userService.RegisterAsync(registerRequest);
                 return Ok();
             }
             catch(DbUpdateException)

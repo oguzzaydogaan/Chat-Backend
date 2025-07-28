@@ -6,27 +6,20 @@ using Services.DTOs;
 
 namespace Services
 {
-    public class ChatService
+    public class ChatService : BaseService<Chat, ChatDTO>
     {
         private readonly ChatRepository _chatRepository;
         private readonly UserRepository _userRepository;
         private readonly MessageRepository _messageRepository;
 
-        private readonly IMapper _mapper;
+
         public ChatService(ChatRepository chatRepository, UserRepository userRepository, MessageRepository messageRepository, IMapper mapper)
+            : base(mapper, chatRepository)
         {
             _chatRepository = chatRepository;
             _userRepository = userRepository;
             _messageRepository = messageRepository;
-            _mapper = mapper;
-        }
 
-
-        public async Task<List<ChatDTO>> GetAllAsync()
-        {
-            var chats = await _chatRepository.GetAllAsync();
-            var dtos = chats.Select(c => _mapper.Map<ChatDTO>(c)).ToList();
-            return dtos;
         }
 
         public async Task<Chat> AddAsync(CreateChatRequestDTO? chat)
@@ -71,7 +64,7 @@ namespace Services
             return dto;
         }
 
-        public async Task<(Chat,Message)> AddUserAsync(int chatId, int userId, UserDTO? sender)
+        public async Task<(Chat,Message)> AddUserAsync(int chatId, int userId, UserDTO sender)
         {
             var chat = await _chatRepository.GetChatWithUsersAsync(chatId);
             if (chat.Users.Count == 2)
@@ -97,12 +90,6 @@ namespace Services
             message = await _messageRepository.AddAsync(message);
 
             return (chat, message);
-        }
-
-        public async Task<Chat> DeleteAsync(int chatId)
-        {
-            var chat = await _chatRepository.DeleteAsync(chatId);
-            return chat;
         }
 
         public async Task<List<ChatDTO>> SearchAsync(string searchTerm)

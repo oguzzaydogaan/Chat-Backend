@@ -40,6 +40,31 @@ namespace backend.Controllers
             }
         }
 
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetByIdAsync(int id)
+        {
+            if (id <= 0)
+                return BadRequest("Invalid format");
+            try
+            {
+                var chat = await _chatService.GetByIdAsync(id);
+                return Ok(chat);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (DbUpdateException)
+            {
+                return StatusCode(500, "Database error occurred while adding message");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+
         [HttpGet("{chatId}/users/{userId}")]
         public async Task<IActionResult> GetChatWithMessagesAsync(int userId, int chatId)
         {
@@ -85,13 +110,13 @@ namespace backend.Controllers
             }
         }
         [HttpPost("{chatId}/users/{userId}")]
-        public async Task<IActionResult> AddUserAsync(int chatId, int userId)
+        public async Task<IActionResult> AddUserAsync(int chatId, int userId, UserDTO sender)
         {
             if (chatId <= 0 || userId <= 0)
                 return BadRequest("Invalid chat ID or user ID");
             try
             {
-                var updatedChat = await _chatService.AddUserAsync(chatId, userId, null);
+                var updatedChat = await _chatService.AddUserAsync(chatId, userId, sender);
                 return Ok();
             }
             catch (UsersNotFoundException ex)

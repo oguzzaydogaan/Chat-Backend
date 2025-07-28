@@ -10,7 +10,7 @@ namespace Services.AutoMapper
         {
             CreateMap<Message, MessageForChatDTO>()
             .ForMember(dest => dest.Sender, opt => opt.MapFrom(src => src.User));
-            CreateMap<Message, GetAllMessagesResDTO>();
+            CreateMap<Message, MessageDTO>();
             CreateMap<RequestPayloadDTO, Message>();
         }
     }
