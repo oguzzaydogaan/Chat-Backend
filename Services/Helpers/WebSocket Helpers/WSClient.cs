@@ -76,8 +76,9 @@ namespace Services
             using var serviceScope = _serviceScopeFactory.CreateScope();
             var _mapper = serviceScope.ServiceProvider.GetService<IMapper>();
             var messageService = serviceScope.ServiceProvider.GetService<MessageService>();
+            var messageReadService = serviceScope.ServiceProvider.GetService<MessageReadService>();
             var chatService = serviceScope.ServiceProvider.GetService<ChatService>();
-            if (messageService == null || chatService == null || _mapper == null)
+            if (messageService == null || chatService == null || _mapper == null || messageReadService == null)
             {
                 throw new ArgumentNullException("An error occured");
             }
@@ -90,11 +91,30 @@ namespace Services
             ResponseSocketMessageDTO socketMessage = new();
             MessageWithUsersDTO? mWithUsers = new();
 
-            if (messageJson.Type == "Send-Message")
+            if (messageJson.Type == "seen")
+            {
+                socketMessage.Type = "seen";
+                socketMessage.Payload.MessageReads = [];
+                var now = DateTime.UtcNow;
+                foreach (var id in messageJson.Payload.Ids)
+                {
+                    socketMessage.Payload.MessageReads.Add(await messageReadService.AddWithoutSaveAsync(new MessageRead
+                    {
+                        MessageId = id,
+                        UserName = messageJson.Sender.Name!,
+                        UserId = messageJson.Sender.Id,
+                        SeenAt = now,
+                    }));
+                }
+                await messageReadService.SaveChangesAsync();
+                socketMessage.Sender = messageJson.Sender;
+                var chat = await chatService.GetChatWithUsersAsync(messageJson.Payload.ChatId);
+                mWithUsers.Users = chat.Users;
+            }
+            else if (messageJson.Type == "Send-Message")
             {
                 socketMessage.Type = "Send-Message";
                 var message = await messageService.AddAsync(_mapper.Map<Message>(messageJson.Payload));
-
                 mWithUsers.Message = message;
                 mWithUsers.Users = message.Chat!.Users;
                 socketMessage.Payload.Message = _mapper.Map<MessageForChatDTO>(mWithUsers.Message);
@@ -105,12 +125,12 @@ namespace Services
                 {
                     throw new ArgumentNullException("Message couldn't delete");
                 }
+
                 int mid = (int)messageJson.Payload.MessageId;
                 socketMessage.Type = "Delete-Message";
                 var message = await messageService.SoftDeleteAsync(mid);
                 mWithUsers.Message = message;
                 mWithUsers.Users = message.Chat!.Users;
-
                 socketMessage.Payload.Message = _mapper.Map<MessageForChatDTO>(mWithUsers.Message);
             }
             else if (messageJson.Type == "New-Chat")

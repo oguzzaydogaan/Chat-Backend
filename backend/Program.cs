@@ -35,6 +35,8 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddScoped<JwtService>();
 builder.Services.AddScoped<PasswordHasher<Repositories.Entities.User>>();
+builder.Services.AddScoped<MessageReadRepository>();
+builder.Services.AddScoped<MessageReadService>();
 builder.Services.AddScoped<UserRepository>();
 builder.Services.AddScoped<ChatRepository>();
 builder.Services.AddScoped<MessageRepository>();

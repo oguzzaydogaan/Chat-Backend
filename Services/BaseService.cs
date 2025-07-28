@@ -33,5 +33,15 @@ namespace Services
             await _repository.DeleteAsync(id);
             return id;
         }
+
+        public async Task<TEntity> AddWithoutSaveAsync(TEntity entity)
+        {
+            return await _repository.AddWithoutSaveAsync(entity);
+        }
+
+        public async Task SaveChangesAsync()
+        {
+            await _repository.SaveChangesAsync();
+        }
     }
 }

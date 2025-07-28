@@ -50,5 +50,16 @@ namespace Repositories.Repositories
         {
             await _context.SaveChangesAsync();
         }
+        public TEntity Remove(TEntity entity)
+        {
+            DbSet.Remove(entity);
+            return entity;
+        }
+
+        public async Task<TEntity> AddWithoutSaveAsync(TEntity entity)
+        {
+            await DbSet.AddAsync(entity);
+            return entity;
+        }
     }
 }

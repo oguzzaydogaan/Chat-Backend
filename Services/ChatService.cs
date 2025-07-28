@@ -64,6 +64,12 @@ namespace Services
             return dto;
         }
 
+        public async Task<Chat> GetChatWithUsersAsync(int chatId)
+        {
+            var chat = await _chatRepository.GetChatWithUsersAsync(chatId);
+            return chat;
+        }
+
         public async Task<(Chat,Message)> AddUserAsync(int chatId, int userId, UserDTO sender)
         {
             var chat = await _chatRepository.GetChatWithUsersAsync(chatId);

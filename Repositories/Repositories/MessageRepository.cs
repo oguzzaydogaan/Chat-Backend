@@ -14,7 +14,7 @@ namespace Repositories.Repositories
 
         public async Task<Message> GetMessageWithChatAsync(int messageId)
         {
-            var message = await DbSet.Include(m => m.Chat).ThenInclude(c => c!.Users).FirstOrDefaultAsync(m => m.Id == messageId);
+            var message = await DbSet.Include(m => m.Seens).Include(m => m.Chat).ThenInclude(c => c!.Users).FirstOrDefaultAsync(m => m.Id == messageId);
             if (message == null)
                 throw new MessageNotFoundException();
             return message;

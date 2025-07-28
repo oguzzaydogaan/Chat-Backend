@@ -19,7 +19,7 @@ namespace Repositories.Repositories
             var user = await DbSet.FirstOrDefaultAsync(u => u.Email == email);
             return user;
         }
-        public async Task<List<User>?> GetByListOfIdsAsync(List<int> ids)
+        public async Task<List<User>> GetByListOfIdsAsync(List<int> ids)
         {
             var users = await DbSet.Where(u => ids.Contains(u.Id)).ToListAsync();
             return users;
@@ -29,6 +29,9 @@ namespace Repositories.Repositories
             var user = await DbSet
                 .Include(u => u.Chats)
                 .ThenInclude(c => c.Users)
+                .Include(u => u.Chats)
+                .ThenInclude(c => c.Messages)
+                .ThenInclude(m => m.Seens)
                 .FirstOrDefaultAsync(u => u.Id == userId);
             if (user == null)
                 throw new Exception("User not found");

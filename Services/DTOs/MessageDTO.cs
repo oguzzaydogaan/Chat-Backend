@@ -36,7 +36,7 @@ namespace Services.DTOs
         public UserDTO? Sender { get; set; }
         public bool IsDeleted { get; set; }
         public bool IsSystem { get; set; }
-
+        public List<MessageRead>? Seens { get; set; }
         public int ChatId { get; set; }
     }
 

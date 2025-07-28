@@ -44,6 +44,8 @@ namespace Repositories.Repositories
                 .Include(c => c.Users)
                 .Include(c => c.Messages)
                     .ThenInclude(m => m.User)
+                .Include(c => c.Messages)
+                    .ThenInclude(m => m.Seens)
                 .FirstOrDefaultAsync(c => c.Id == chatId);
 
             if (chat == null)

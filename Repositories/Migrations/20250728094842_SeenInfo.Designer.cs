@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Repositories.Context;
@@ -11,9 +12,11 @@ using Repositories.Context;
 namespace Repositories.Migrations
 {
     [DbContext(typeof(RepositoryContext))]
-    partial class RepositoryContextModelSnapshot : ModelSnapshot
+    [Migration("20250728094842_SeenInfo")]
+    partial class SeenInfo
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -116,8 +119,6 @@ namespace Repositories.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("MessageId");
-
                     b.ToTable("MessageReads");
                 });
 
@@ -180,23 +181,9 @@ namespace Repositories.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Repositories.Entities.MessageRead", b =>
-                {
-                    b.HasOne("Repositories.Entities.Message", null)
-                        .WithMany("Seens")
-                        .HasForeignKey("MessageId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("Repositories.Entities.Chat", b =>
                 {
                     b.Navigation("Messages");
-                });
-
-            modelBuilder.Entity("Repositories.Entities.Message", b =>
-                {
-                    b.Navigation("Seens");
                 });
 
             modelBuilder.Entity("Repositories.Entities.User", b =>

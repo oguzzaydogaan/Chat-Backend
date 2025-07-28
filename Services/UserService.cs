@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Repositories.Entities;
 using Repositories.Repositories;
 using Services.DTOs;
+using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace Services
@@ -14,7 +15,7 @@ namespace Services
         private readonly JwtService _jwtService;
 
         public UserService(UserRepository userRepository, PasswordHasher<User> passwordHasher, JwtService jwtService, IMapper mapper)
-        :base(mapper, userRepository)
+        : base(mapper, userRepository)
         {
             _userRepository = userRepository;
             _passwordHasher = passwordHasher;
@@ -51,7 +52,7 @@ namespace Services
             return _jwtService.Authenticate(user);
         }
 
-        public async Task<List<ChatDTO>?> GetChatsAsync(int userId)
+        public async Task<List<ChatWithNotSeensDTO>?> GetChatsAsync(int userId)
         {
             var user = await _userRepository.GetChatsAsync(userId);
             if (user.Chats == null)
@@ -61,10 +62,12 @@ namespace Services
                 if (c.Users.Count == 2)
                     c.Name = c.Users.FirstOrDefault(u => u.Id != userId)?.Name ?? throw new Exception("Other user not found");
 
-                return _mapper.Map<ChatDTO>(c);
+                int count = c.Messages.Where(m => !m.Seens.Any(s => s.UserId == userId)).ToList().Count;
+
+                return _mapper.Map<ChatWithNotSeensDTO>(c, opt => opt.Items["Count"] = count);
             }).ToList();
             return chats;
-        }     
+        }
 
         public async Task<List<ChatDTO>> SearchChatsAsync(int userId, string searchTerm)
         {

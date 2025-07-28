@@ -8,6 +8,7 @@
         public Chat? Chat { get; set; }
         public int UserId { get; set; }
         public User? User { get; set; }
+        public List<MessageRead> Seens { get; set; } = [];
         public bool IsDeleted { get; set; } = false;
         public bool IsSystem { get; set; } = false;
     }
