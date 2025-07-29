@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using Exceptions;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Services;
@@ -46,7 +47,7 @@ namespace backend.Controllers
                 var user = await _userService.GetByIdAsync(id);
                 return Ok(user);
             }
-            catch(KeyNotFoundException ex)
+            catch (KeyNotFoundException ex)
             {
                 return BadRequest(ex.Message);
             }
@@ -69,7 +70,7 @@ namespace backend.Controllers
                 await _userService.RegisterAsync(registerRequest);
                 return Ok();
             }
-            catch(DbUpdateException)
+            catch (DbUpdateException)
             {
                 return StatusCode(500, "Database error occured while adding user");
             }
@@ -77,6 +78,24 @@ namespace backend.Controllers
             {
                 return StatusCode(400, ex.Message);
             }
+        }
+        [AllowAnonymous]
+        [HttpGet("verify")]
+        public async Task<IActionResult> VerifyAsync([FromQuery] string email, [FromQuery] string token)
+        {
+            try
+            {
+                var isConfirmed = await _userService.VerifyAsync(email, token);
+                return Ok("Email verified successfully.");
+            }
+            catch (DbUpdateException ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }          
         }
 
         [HttpGet("{userId}/chats")]
@@ -105,6 +124,10 @@ namespace backend.Controllers
             {
                 var response = await _userService.LoginAsync(loginRequest.Email!, loginRequest.Password!);
                 return Ok(response);
+            }
+            catch(EmailVerificationException ex)
+            {
+                return StatusCode(403, ex.Message);
             }
             catch (DbUpdateException)
             {
