@@ -19,6 +19,12 @@
         public List<int> UserIds { get; set; } = new List<int>();
     }
 
+    public class CreateChatWithCreatorDTO
+    {
+        public CreateChatRequestDTO Chat { get; set; } = new();
+        public UserDTO Creator { get; set; } = new();
+    }
+
     public class CreateChatResponseDTO
     {
         public string Name { get; set; } = string.Empty;

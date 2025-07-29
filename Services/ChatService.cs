@@ -22,7 +22,7 @@ namespace Services
 
         }
 
-        public async Task<Chat> AddAsync(CreateChatRequestDTO? chat)
+        public async Task<Chat> AddAsync(CreateChatRequestDTO? chat, UserDTO creator)
         {
             if (chat == null || chat.UserIds.Count < 2)
             {
@@ -53,6 +53,14 @@ namespace Services
             }
 
             var created = await _chatRepository.AddAsync(entity);
+            var message = new Message
+            {
+                UserId = creator.Id,
+                ChatId = created.Id,
+                Content = $"{creator.Name} created this chat.",
+                IsSystem = true
+            };
+            var added = await _messageRepository.AddAsync(message);
             return created;
         }
 

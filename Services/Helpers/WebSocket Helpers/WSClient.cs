@@ -137,7 +137,7 @@ namespace Services
             {
                 socketMessage.Type = "New-Chat";
                 socketMessage.Sender = messageJson.Sender;
-                var chat = await chatService.AddAsync(messageJson.Payload.Chat);
+                var chat = await chatService.AddAsync(messageJson.Payload.Chat, socketMessage.Sender);
                 mWithUsers.Users = chat.Users;
                 socketMessage.Payload.Chat = _mapper.Map<SocketChatDTO>(chat);
             }

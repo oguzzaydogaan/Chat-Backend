@@ -89,11 +89,11 @@ namespace backend.Controllers
             }
         }
         [HttpPost]
-        public async Task<IActionResult> AddAsync([FromBody] CreateChatRequestDTO dto)
+        public async Task<IActionResult> AddAsync([FromBody] CreateChatWithCreatorDTO dto)
         {
             try
             {
-                var chat = await _chatService.AddAsync(dto);
+                var chat = await _chatService.AddAsync(dto.Chat, dto.Creator);
                 return Ok(_mapper.Map<CreateChatResponseDTO>(chat));
             }
             catch (ChatAlreadyExistException ex)

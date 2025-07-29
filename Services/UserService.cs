@@ -93,7 +93,7 @@ namespace Services
                 if (c.Users.Count == 2)
                     c.Name = c.Users.FirstOrDefault(u => u.Id != userId)?.Name ?? throw new Exception("Other user not found");
 
-                int count = c.Messages.Where(m => !m.Seens.Any(s => s.UserId == userId)).ToList().Count;
+                int count = !c.Messages[0].Seens.Any(s=>s.UserId == userId) ? -1 : c.Messages.Where(m => !m.Seens.Any(s => s.UserId == userId)).ToList().Count;
 
                 return _mapper.Map<ChatWithNotSeensDTO>(c, opt => opt.Items["Count"] = count);
             }).ToList();
