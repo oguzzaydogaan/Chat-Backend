@@ -6,6 +6,7 @@ using Repositories.Context;
 using Repositories.Repositories;
 using Services;
 using Services.AutoMapper;
+using Services.Helpers.Mail_Helpers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -35,6 +36,7 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddScoped<JwtService>();
 builder.Services.AddScoped<PasswordHasher<Repositories.Entities.User>>();
+builder.Services.AddScoped<MailSender>();
 builder.Services.AddScoped<MessageReadRepository>();
 builder.Services.AddScoped<MessageReadService>();
 builder.Services.AddScoped<UserRepository>();

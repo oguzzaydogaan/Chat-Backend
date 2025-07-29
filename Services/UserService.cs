@@ -1,8 +1,11 @@
 ﻿using AutoMapper;
+using Exceptions;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Repositories.Entities;
 using Repositories.Repositories;
 using Services.DTOs;
+using Services.Helpers.Mail_Helpers;
 using System.Text.RegularExpressions;
 
 namespace Services
@@ -12,13 +15,15 @@ namespace Services
         private readonly UserRepository _userRepository;
         private readonly PasswordHasher<User> _passwordHasher;
         private readonly JwtService _jwtService;
+        private readonly MailSender _mailSender;
 
-        public UserService(UserRepository userRepository, PasswordHasher<User> passwordHasher, JwtService jwtService, IMapper mapper)
+        public UserService(UserRepository userRepository, PasswordHasher<User> passwordHasher, JwtService jwtService, IMapper mapper, MailSender mailSender)
         : base(mapper, userRepository)
         {
             _userRepository = userRepository;
             _passwordHasher = passwordHasher;
             _jwtService = jwtService;
+            _mailSender = mailSender;
         }
 
         public async Task RegisterAsync(RegisterRequestDTO registerRequest)
@@ -35,7 +40,26 @@ namespace Services
                 throw new Exception("This email is already taken");
             }
             user.Password = _passwordHasher.HashPassword(user, user.Password!);
+            user.EmailVerificationToken = Guid.NewGuid().ToString();
             await _userRepository.AddAsync(user);
+            await _mailSender.SendEmailAsync(user.Email, user.EmailVerificationToken);
+        }
+
+        public async Task<bool> VerifyAsync(string email, string token)
+        {
+            var user = await _userRepository.GetByEmailAndTokenAsync(email, token);
+            if (user == null)
+            {
+                throw new Exception("Invalid token or email");
+            }
+            if(user.IsEmailConfirmed == true)
+            {
+                return false;
+            }
+            user.IsEmailConfirmed = true;
+            user.EmailVerificationToken = "";
+            await _userRepository.SaveChangesAsync();
+            return true;
         }
 
         public async Task<LoginResponseDTO> LoginAsync(string email, string password)
@@ -50,6 +74,11 @@ namespace Services
             if (result == PasswordVerificationResult.Failed)
             {
                 throw new Exception("Invalid password");
+            }
+
+            if (user.IsEmailConfirmed == false)
+            {
+                throw new EmailVerificationException();
             }
 
             return _jwtService.Authenticate(user);

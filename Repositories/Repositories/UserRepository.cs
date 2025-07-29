@@ -19,6 +19,11 @@ namespace Repositories.Repositories
             var user = await DbSet.FirstOrDefaultAsync(u => u.Email == email);
             return user;
         }
+        public async Task<User?> GetByEmailAndTokenAsync(string email, string token)
+        {
+            var user = await DbSet.FirstOrDefaultAsync(u => u.Email == email && u.EmailVerificationToken == token);
+            return user;
+        }
         public async Task<List<User>> GetByListOfIdsAsync(List<int> ids)
         {
             var users = await DbSet.Where(u => ids.Contains(u.Id)).ToListAsync();
