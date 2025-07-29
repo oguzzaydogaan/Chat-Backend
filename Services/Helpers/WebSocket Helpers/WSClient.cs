@@ -1,10 +1,9 @@
-﻿using Exceptions;
+﻿using AutoMapper;
+using Exceptions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.IdentityModel.Tokens;
-using Repositories.DTOs;
 using Repositories.Entities;
-using Repositories.Mappers;
+using Services.DTOs;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
@@ -14,7 +13,7 @@ namespace Services
     public class WSClient
     {
         private readonly WSClientListManager _wsClientListManager;
-        private readonly WebSocket _client;
+        public WebSocket _client;
         private readonly IServiceScopeFactory _serviceScopeFactory;
 
         public WSClient(WSClientListManager wsClientListManager, WebSocket client, IServiceScopeFactory serviceScopeFactory)
@@ -34,7 +33,7 @@ namespace Services
                     new ArraySegment<byte>(buffer), CancellationToken.None);
                 if (validTo < DateTime.UtcNow)
                 {
-                    throw new Exception("Token expired.");
+                    throw new TokenExpiredException();
                 }
                 try
                 {
@@ -57,6 +56,10 @@ namespace Services
                 {
                     await SendErrorToClient("JSON error.");
                 }
+                catch (ChatAlreadyExistException ex)
+                {
+                    await SendErrorToClient(ex.Message, ex.RedirectChatId);
+                }
                 catch (Exception ex)
                 {
                     await SendErrorToClient(ex.Message);
@@ -64,16 +67,18 @@ namespace Services
             }
             while (!receiveResult.CloseStatus.HasValue);
 
-            await _wsClientListManager.RemoveClient(id, "Websocket status is closed.");
+            await _wsClientListManager.RemoveClient(id, "Connection timed out. Please reconnect", _client);
 
         }
 
         public async Task<BytesWithUsersDTO> ConvertRequest(byte[] buffer, WebSocketReceiveResult receiveResult)
         {
             using var serviceScope = _serviceScopeFactory.CreateScope();
+            var _mapper = serviceScope.ServiceProvider.GetService<IMapper>();
             var messageService = serviceScope.ServiceProvider.GetService<MessageService>();
+            var messageReadService = serviceScope.ServiceProvider.GetService<MessageReadService>();
             var chatService = serviceScope.ServiceProvider.GetService<ChatService>();
-            if (messageService == null || chatService == null)
+            if (messageService == null || chatService == null || _mapper == null || messageReadService == null)
             {
                 throw new ArgumentNullException("An error occured");
             }
@@ -86,15 +91,33 @@ namespace Services
             ResponseSocketMessageDTO socketMessage = new();
             MessageWithUsersDTO? mWithUsers = new();
 
-            if (messageJson.Type == "Send-Message")
+            if (messageJson.Type == "seen")
+            {
+                socketMessage.Type = "seen";
+                socketMessage.Payload.MessageReads = [];
+                var now = DateTime.UtcNow;
+                foreach (var id in messageJson.Payload.Ids)
+                {
+                    socketMessage.Payload.MessageReads.Add(await messageReadService.AddWithoutSaveAsync(new MessageRead
+                    {
+                        MessageId = id,
+                        UserName = messageJson.Sender.Name!,
+                        UserId = messageJson.Sender.Id,
+                        SeenAt = now,
+                    }));
+                }
+                await messageReadService.SaveChangesAsync();
+                socketMessage.Sender = messageJson.Sender;
+                var chat = await chatService.GetChatWithUsersAsync(messageJson.Payload.ChatId);
+                mWithUsers.Users = chat.Users;
+            }
+            else if (messageJson.Type == "Send-Message")
             {
                 socketMessage.Type = "Send-Message";
-                mWithUsers = await messageService.AddMessageAsync(messageJson.Payload.ToMessage());
-                if (mWithUsers == null || mWithUsers.Message == null)
-                {
-                    throw new ArgumentNullException("Message couldn't send");
-                }
-                socketMessage.Payload.Message = mWithUsers.Message.ToMessageForChatDTO();
+                var message = await messageService.AddAsync(_mapper.Map<Message>(messageJson.Payload));
+                mWithUsers.Message = message;
+                mWithUsers.Users = message.Chat!.Users;
+                socketMessage.Payload.Message = _mapper.Map<MessageForChatDTO>(mWithUsers.Message);
             }
             else if (messageJson.Type == "Delete-Message")
             {
@@ -102,36 +125,30 @@ namespace Services
                 {
                     throw new ArgumentNullException("Message couldn't delete");
                 }
+
                 int mid = (int)messageJson.Payload.MessageId;
                 socketMessage.Type = "Delete-Message";
-                mWithUsers = await messageService.DeleteMessageAsync(mid);
-                if (mWithUsers == null || mWithUsers.Message == null)
-                {
-                    throw new ArgumentNullException("Message couldn't delete");
-                }
-                socketMessage.Payload.Message = mWithUsers.Message.ToMessageForChatDTO();
+                var message = await messageService.SoftDeleteAsync(mid, messageJson.Sender.Id);
+                mWithUsers.Message = message;
+                mWithUsers.Users = message.Chat!.Users;
+                socketMessage.Payload.Message = _mapper.Map<MessageForChatDTO>(mWithUsers.Message);
             }
             else if (messageJson.Type == "New-Chat")
             {
                 socketMessage.Type = "New-Chat";
-                if (messageJson.Payload.UserIds == null)
-                {
-                    throw new ArgumentNullException("Chat couldn't create");
-                }
-                var chat = await chatService.AddChatAsync(messageJson.Payload.UserIds);
-                if (chat == null)
-                {
-                    throw new ChatNotFoundException();
-                }
+                socketMessage.Sender = messageJson.Sender;
+                var chat = await chatService.AddAsync(messageJson.Payload.Chat);
                 mWithUsers.Users = chat.Users;
-                socketMessage.Payload.Chat = chat.EntityToChatDTO();
+                socketMessage.Payload.Chat = _mapper.Map<SocketChatDTO>(chat);
             }
-            else if (messageJson.Type == "New-UserToChat")
+            else if (messageJson.Type == "User-Join")
             {
-                socketMessage.Type = "New-UserToChat";
-                var chat = await chatService.AddUserToChatAsync(messageJson.Payload.ChatId, messageJson.Payload.UserId);
-                mWithUsers.Users = chat.Users;
-                socketMessage.Payload.Chat = chat.EntityToChatDTO();
+                socketMessage.Type = "User-Join";
+                socketMessage.Sender = messageJson.Sender;
+                var res = await chatService.AddUserAsync(messageJson.Payload.ChatId, messageJson.Payload.UserId, messageJson.Sender);
+                mWithUsers.Users = res.Item1.Users;
+                socketMessage.Payload.Message = _mapper.Map<MessageForChatDTO>(res.Item2);
+                socketMessage.Payload.Chat = _mapper.Map<SocketChatDTO>(res.Item1);
             }
 
             var json = JsonSerializer.Serialize(socketMessage);
@@ -140,13 +157,20 @@ namespace Services
         }
 
 
-        public async Task SendErrorToClient(string ex)
+        public async Task SendErrorToClient(string ex, int id = -1)
         {
             ResponseSocketMessageDTO message = new()
             {
-                Type = "Error"
+                Type = "Error",
+                Payload =
+                {
+                    Error = ex,
+                    Chat = new()
+                    {
+                        Id=id
+                    }
+                }
             };
-            message.Payload.Error = ex;
             var json = JsonSerializer.Serialize(message);
             var bytes = Encoding.UTF8.GetBytes(json);
             await _client.SendAsync(

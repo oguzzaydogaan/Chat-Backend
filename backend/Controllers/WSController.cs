@@ -20,8 +20,9 @@ namespace backend.Controllers
         {
             if (HttpContext.WebSockets.IsWebSocketRequest)
             {
+                
                 var webSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
-                string token = HttpContext.Request.Query["accessToken"];
+                string? token = HttpContext.Request.Query["accessToken"];
 
                 var validatedToken = _jwtService.Validate(token) as JwtSecurityToken;
                 int id = int.Parse(validatedToken!.Claims.FirstOrDefault(c => c.Type == "UserId")!.Value);

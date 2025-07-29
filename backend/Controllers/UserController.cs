@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Repositories.DTOs;
-using Repositories.Entities;
+using Microsoft.EntityFrameworkCore;
 using Services;
+using Services.DTOs;
 
 namespace backend.Controllers
 {
@@ -18,39 +18,82 @@ namespace backend.Controllers
         private readonly UserService _userService;
 
         [HttpGet]
-        public async Task<IActionResult> GetAllUsers()
+        public async Task<IActionResult> GetAllAsync()
         {
-            var users = await _userService.GetAllUsersAsync();
-            return Ok(users);
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> AddUserAsync([FromBody] User user)
-        {
-            if (user == null)
-                return BadRequest("User cannot be null.");
             try
             {
-                await _userService.AddUserAsync(user);
-                return Ok();
+                var users = await _userService.GetAllAsync();
+                return Ok(users);
+            }
+            catch (DbUpdateException)
+            {
+                return StatusCode(500, "Database error occurred while retrieving users");
             }
             catch (Exception ex)
             {
-                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+                return StatusCode(400, ex.Message);
+            }
+
+        }
+
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetByIdAsync(int id)
+        {
+            if (id <= 0)
+                return BadRequest("Invalid format");
+            try
+            {
+                var user = await _userService.GetByIdAsync(id);
+                return Ok(user);
+            }
+            catch(KeyNotFoundException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            catch (DbUpdateException)
+            {
+                return StatusCode(500, "Database error occured while retrieving user");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        [AllowAnonymous]
+        [HttpPost("register")]
+        public async Task<IActionResult> AddAsync([FromBody] RegisterRequestDTO registerRequest)
+        {
+            try
+            {
+                await _userService.RegisterAsync(registerRequest);
+                return Ok();
+            }
+            catch(DbUpdateException)
+            {
+                return StatusCode(500, "Database error occured while adding user");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(400, ex.Message);
             }
         }
 
         [HttpGet("{userId}/chats")]
-        public async Task<IActionResult> GetUsersChatsAsync(int userId)
+        public async Task<IActionResult> GetChatsAsync(int userId)
         {
             try
             {
-                var chats = await _userService.GetUsersChatsAsync(userId);
+                var chats = await _userService.GetChatsAsync(userId);
                 return Ok(chats);
+            }
+            catch (DbUpdateException)
+            {
+                return StatusCode(500, "Database error occured while getting chats");
             }
             catch (Exception ex)
             {
-                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+                return StatusCode(400, ex.Message);
             }
         }
 
@@ -63,25 +106,56 @@ namespace backend.Controllers
                 var response = await _userService.LoginAsync(loginRequest.Email!, loginRequest.Password!);
                 return Ok(response);
             }
+            catch (DbUpdateException)
+            {
+                return StatusCode(500, "Database error occured");
+            }
             catch (Exception ex)
             {
-                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+                return StatusCode(400, ex.Message);
             }
         }
 
-        [AllowAnonymous]
-        [HttpPost("register")]
-        public async Task<IActionResult> RegisterAsync([FromBody] RegisterRequestDTO registerRequest)
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteAsync(int id)
         {
             try
             {
-                await _userService.RegisterAsync(registerRequest);
-                return Ok();
+                var response = await _userService.DeleteAsync(id);
+                return Ok(response);
+            }
+            catch (DbUpdateException)
+            {
+                return StatusCode(500, "Database error occured");
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ex.Message);
             }
             catch (Exception ex)
             {
-                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+                return StatusCode(400, ex.Message);
             }
         }
+
+        [HttpGet("{userId}/chats/search")]
+        public async Task<IActionResult> SearchAsync(int userId, [FromQuery] string searchTerm)
+        {
+            try
+            {
+                var chats = await _userService.SearchChatsAsync(userId, searchTerm);
+                return Ok(chats);
+            }
+            catch (DbUpdateException)
+            {
+                return StatusCode(500, "Database error occurred while searching chats");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+
     }
 }
