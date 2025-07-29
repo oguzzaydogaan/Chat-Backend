@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Identity;
 using Repositories.Entities;
 using Repositories.Repositories;
 using Services.DTOs;
-using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace Services
@@ -43,11 +42,15 @@ namespace Services
         {
             var user = await _userRepository.GetByEmailAsync(email);
             if (user == null)
+            {
                 throw new Exception("User not found");
+            }
 
             var result = _passwordHasher.VerifyHashedPassword(user, user.Password!, password);
             if (result == PasswordVerificationResult.Failed)
+            {
                 throw new Exception("Invalid password");
+            }
 
             return _jwtService.Authenticate(user);
         }
@@ -75,7 +78,9 @@ namespace Services
             var dtos = chats.Select(c =>
             {
                 if (c.Users.Count == 2)
+                {
                     c.Name = c.Users.FirstOrDefault(u => u.Id != userId)?.Name ?? throw new Exception("Other user not found");
+                }
 
                 return _mapper.Map<ChatDTO>(c);
             }).ToList();

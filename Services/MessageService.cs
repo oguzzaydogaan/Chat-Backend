@@ -24,8 +24,10 @@ namespace Services
         {
             var chat = await _chatRepository.GetChatWithUsersAsync(message.ChatId);
             if (!chat.Users.Any(u => u.Id == message.UserId))
+            {
                 throw new UserNotMemberOfChatException();
-            
+            }
+
             message = await _messageRepository.AddAsync(message);
 
             var messageRead = new MessageRead
@@ -51,7 +53,9 @@ namespace Services
             foreach (var seen in message.Seens)
             {
                 if (seen.UserId != message.UserId)
+                {
                     _messageReadRepository.Remove(seen);
+                }
             }
             message = await _messageRepository.UpdateAsync(message);
             return message;

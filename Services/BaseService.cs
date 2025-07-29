@@ -24,7 +24,9 @@ namespace Services
         {
             var entity = await _repository.GetByIdAsync(id);
             if (entity == null)
+            {
                 throw new KeyNotFoundException("Entity not found");
+            }
             return _mapper.Map<TDTO>(entity);
         }
 

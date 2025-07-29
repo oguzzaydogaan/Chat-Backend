@@ -25,17 +25,22 @@ namespace Services
         public async Task<Chat> AddAsync(CreateChatRequestDTO? chat)
         {
             if (chat == null || chat.UserIds.Count < 2)
+            {
                 throw new Exception("At least two users are required to create a chat");
+            }
 
             var users = await _userRepository.GetByListOfIdsAsync(chat.UserIds);
             if (users == null || users.Count != chat.UserIds.Count)
+            {
                 throw new Exception("Some users not found");
-
+            }
             if (users.Count == 2)
             {
                 var findChat = await _chatRepository.GetByUserIdsAsync(chat.UserIds);
                 if (findChat != null)
+                {
                     throw new ChatAlreadyExistException(findChat.Id);
+                }
             }
 
             var entity = _mapper.Map<Chat>(chat, opt =>
@@ -43,7 +48,9 @@ namespace Services
                 opt.Items["Users"] = users;
             });
             if (entity.Name == string.Empty)
+            {
                 throw new Exception("Chat needs a name");
+            }
 
             var created = await _chatRepository.AddAsync(entity);
             return created;
@@ -55,10 +62,14 @@ namespace Services
             chat.Messages = chat.Messages.OrderBy(m => m.Time).ToList();
 
             if (!chat.Users.Any(u => u.Id == userId))
+            {
                 throw new Exception("User is not member of chat");
+            }
 
             if (chat.Users.Count == 2)
+            {
                 chat.Name = chat.Users.FirstOrDefault(u => u.Id != userId)?.Name ?? throw new Exception("Other user not found");
+            }
 
             var dto = _mapper.Map<ChatWithMessagesDTO>(chat);
             return dto;
@@ -70,17 +81,24 @@ namespace Services
             return chat;
         }
 
-        public async Task<(Chat,Message)> AddUserAsync(int chatId, int userId, UserDTO sender)
+        public async Task<(Chat, Message)> AddUserAsync(int chatId, int userId, UserDTO sender)
         {
             var chat = await _chatRepository.GetChatWithUsersAsync(chatId);
             if (chat.Users.Count == 2)
+            {
                 throw new Exception("Cannot add user to personal chat");
+            }
             if (chat.Users.Any(u => u.Id == userId))
+            {
                 throw new UserAlreadyExistException();
+            }
 
             var user = await _userRepository.GetByIdAsync(userId);
             if (user == null)
+            {
                 throw new UsersNotFoundException();
+
+            }
 
             chat.Users.Add(user);
             chat.LastUpdate = DateTime.UtcNow;
@@ -91,10 +109,19 @@ namespace Services
                 UserId = sender.Id,
                 ChatId = chatId,
                 Content = $"{sender.Name} added {user.Name}.",
-                IsSystem = true
+                IsSystem = true,
+                Time = chat.LastUpdate
             };
             message = await _messageRepository.AddAsync(message);
-
+            var messageRead = new MessageRead
+            {
+                MessageId = message.Id,
+                UserId = message.UserId,
+                UserName = chat.Users.First(u => u.Id == message.UserId).Name,
+                SeenAt = message.Time
+            };
+            message.Seens = [messageRead];
+            await _messageRepository.UpdateAsync(message);
             return (chat, message);
         }
 
