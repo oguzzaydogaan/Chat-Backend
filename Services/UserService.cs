@@ -1,7 +1,6 @@
 ﻿using AutoMapper;
 using Exceptions;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using Repositories.Entities;
 using Repositories.Repositories;
 using Services.DTOs;
