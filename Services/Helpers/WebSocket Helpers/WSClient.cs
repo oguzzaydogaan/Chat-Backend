@@ -128,7 +128,7 @@ namespace Services
 
                 int mid = (int)messageJson.Payload.MessageId;
                 socketMessage.Type = "Delete-Message";
-                var message = await messageService.SoftDeleteAsync(mid);
+                var message = await messageService.SoftDeleteAsync(mid, messageJson.Sender.Id);
                 mWithUsers.Message = message;
                 mWithUsers.Users = message.Chat!.Users;
                 socketMessage.Payload.Message = _mapper.Map<MessageForChatDTO>(mWithUsers.Message);

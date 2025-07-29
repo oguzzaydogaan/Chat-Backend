@@ -44,9 +44,13 @@ namespace Services
 
             return message;
         }
-        public async Task<Message> SoftDeleteAsync(int messageId)
+        public async Task<Message> SoftDeleteAsync(int messageId, int uid)
         {
             var message = await _messageRepository.GetMessageWithChatAsync(messageId);
+            if (uid != message.UserId)
+            {
+                throw new Exception("You can delete only your own messages");
+            }
             message.Content = "This message was deleted";
             message.IsDeleted = true;
             message.Chat!.LastUpdate = DateTime.UtcNow;
