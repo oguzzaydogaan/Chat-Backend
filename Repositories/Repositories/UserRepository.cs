@@ -1,79 +1,64 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Repositories.DTOs;
+using Repositories.Context;
 using Repositories.Entities;
-using Repositories.Mappers;
 
 namespace Repositories.Repositories
 {
-    public class UserRepository
+    public class UserRepository : BaseRepository<User>
     {
+        private readonly PasswordHasher<User> _passwordHasher;
         public UserRepository(RepositoryContext context, PasswordHasher<User> passwordHasher)
+            : base(context)
         {
-            _context = context;
             _passwordHasher = passwordHasher;
         }
-        private readonly RepositoryContext _context;
-        private readonly PasswordHasher<User> _passwordHasher;
 
-        public async Task<List<UserDTO>> GetAllUsersAsync()
+        public async Task<User?> GetByEmailAsync(string email)
         {
-            var users = await _context.Users.Select(u => u.ToUserDTO()).ToListAsync();
-            return users;
-        }
-
-        public async Task<User?> GetUserByIdAsync(int userId)
-        {
-            var user = await _context.Users.FindAsync(userId);
-            if (user == null)
-                throw new Exception("User not found.");
+            var user = await DbSet.FirstOrDefaultAsync(u => u.Email == email);
             return user;
         }
-
-        public async Task<User?> AddUserAsync(User user)
+        public async Task<List<User>> GetByListOfIdsAsync(List<int> ids)
         {
-            try
-            {
-                user.Password = _passwordHasher.HashPassword(user, user.Password!);
-                await _context.Users.AddAsync(user);
-                await _context.SaveChangesAsync();
-                return user;
-            }
-            catch (DbUpdateException ex)
-            {
-                throw new Exception("An error occurred while adding the user.", ex);
-            }
+            var users = await DbSet.Where(u => ids.Contains(u.Id)).ToListAsync();
+            return users;
         }
-
-        public async Task<User?> GetUsersChatsAsync(int userId)
+        public async Task<User> GetChatsAsync(int userId)
         {
-            var user = await _context.Users
+            var user = await DbSet
                 .Include(u => u.Chats)
                 .ThenInclude(c => c.Users)
+                .Include(u => u.Chats)
+                .ThenInclude(c => c.Messages)
+                .ThenInclude(m => m.Seens)
                 .FirstOrDefaultAsync(u => u.Id == userId);
             if (user == null)
-                throw new Exception("User not found.");
+                throw new Exception("User not found");
             user.Chats = user.Chats.OrderByDescending(c => c.LastUpdate).ToList();
             return user;
         }
 
-        public async Task<User?> LoginAsync(string email)
+        public async Task<List<Chat>> SearchChatsAsync(int userId, string searchTerm)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
-            return user;
-        }
-
-        public async Task RegisterAsync(User user)
-        {
-            var isValid = await _context.Users.FirstOrDefaultAsync(u => u.Email == user.Email) == null ? true : false;
-            if (isValid)
+            if (string.IsNullOrWhiteSpace(searchTerm))
             {
-                user.Password = _passwordHasher.HashPassword(user, user.Password!);
-                await _context.Users.AddAsync(user);
-                await _context.SaveChangesAsync();
-                return;
+                var user = await GetChatsAsync(userId);
+                return user.Chats.ToList();
             }
-            throw new Exception("This email already taken.");
+
+            var chats = await DbSet
+                .Where(u => u.Id == userId)
+                .SelectMany(u => u.Chats)
+                .Include(c => c.Users)
+                .Where((c) =>
+                    c.Users.Count == 2
+                        ? c.Users.First(u => u.Id != userId).Name.ToLower().Contains(searchTerm.ToLower())
+                        : c.Name.ToLower().Contains(searchTerm.ToLower())
+                )
+                .ToListAsync();
+
+            return chats;
         }
     }
 }

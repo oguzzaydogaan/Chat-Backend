@@ -1,12 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Repositories.Entities;
 
-namespace Repositories.Repositories
+namespace Repositories.Context
 {
     public class RepositoryContext : DbContext
     {
@@ -16,5 +11,6 @@ namespace Repositories.Repositories
         public DbSet<User> Users { get; set; }
         public DbSet<Chat> Chats { get; set; }
         public DbSet<Message> Messages { get; set; }
+        public DbSet<MessageRead> MessageReads { get; set; }
     }
 }

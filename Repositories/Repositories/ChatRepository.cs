@@ -1,129 +1,73 @@
 ﻿using Exceptions;
 using Microsoft.EntityFrameworkCore;
-using Repositories.DTOs;
+using Repositories.Context;
 using Repositories.Entities;
-using Repositories.Mappers;
 
 namespace Repositories.Repositories
 {
-    public class ChatRepository
+    public class ChatRepository : BaseRepository<Chat>
     {
         public ChatRepository(RepositoryContext context)
+            : base(context)
         {
-            _context = context;
         }
-        private readonly RepositoryContext _context;
 
-        public async Task<Chat?> AddChatAsync(List<int> userIds)
+        public async Task<Chat> GetChatWithUsersAsync(int chatId)
         {
-            var users = await _context.Users
-                .Where(u => userIds.Contains(u.Id))
+            var chat = await DbSet
+                .Include(c => c.Users)
+                .FirstOrDefaultAsync(c => c.Id == chatId);
+            if (chat == null)
+                throw new ChatNotFoundException();
+            return chat;
+        }
+
+        public async Task<Chat?> GetByUserIdsAsync(List<int> userIds)
+        {
+            var chat = await DbSet
+                .Include(c => c.Users)
+                .FirstOrDefaultAsync(c => c.Users.Count == userIds.Count && c.Users.All(u => userIds.Contains(u.Id)));
+            return chat;
+        }
+
+        public async Task<List<Chat>> SearchAsync(string searchTerm)
+        {
+            if (string.IsNullOrWhiteSpace(searchTerm))
+                return await DbSet.ToListAsync();
+            return await DbSet
+                .Where(c => c.Name.Contains(searchTerm))
                 .ToListAsync();
+        }
+        public async Task<Chat> GetChatWithMessagesAndUsersAsync(int chatId)
+        {
+            var chat = await DbSet
+                .Include(c => c.Users)
+                .Include(c => c.Messages)
+                    .ThenInclude(m => m.User)
+                .Include(c => c.Messages)
+                    .ThenInclude(m => m.Seens)
+                .FirstOrDefaultAsync(c => c.Id == chatId);
 
-            if (users.Count != userIds.Count)
-                throw new UsersNotFoundException();
+            if (chat == null)
+                throw new Exception("Chat cannot found");
 
-            if (userIds.Count == 2)
-            {
-                var findChat = await _context.Chats.Include(c => c.Users)
-                    .FirstOrDefaultAsync(c => c.Users.Count == users.Count && c.Users.All(u => users.Contains(u)));
-
-                if (findChat != null)
-                {
-                    throw new ChatAlreadyExistException();
-                }
-            }
-
-            var chat = new Chat
-            {
-                Users = users
-            };
-
-            await _context.Chats.AddAsync(chat);
-            await _context.SaveChangesAsync();
+            chat.Messages = chat.Messages.OrderByDescending(m => m.Time).ToList();
 
             return chat;
         }
 
-        public async Task<Chat> AddUserToChat(int chatId, int userId)
+        public async Task<List<User>> SearchUsersAsync(int chatId, string searchTerm)
         {
-            var chat = await _context.Chats
-                .Include(c => c.Users)
-                .FirstOrDefaultAsync(c => c.Id == chatId);
-
-            if (chat == null)
-                throw new ChatNotFoundException();
-
-            var user = await _context.Users
-                .FirstOrDefaultAsync(u => u.Id == userId);
-
-            if (user == null)
-                throw new UsersNotFoundException();
-
-            if (chat.Users.Any(u => u.Id == userId))
-                throw new UserAlreadyExistException();
-
-            chat.Users.Add(user);
-            chat.LastUpdate = DateTime.UtcNow;
-            _context.Chats.Update(chat);
-            await _context.SaveChangesAsync();
-
-            return chat;
-
-        }
-
-        public async Task<ChatWithMessagesDTO?> GetChatMessagesAsync(int chatId, int userId)
-        {
-            var chat = await _context.Chats
-                .Include(c => c.Users)
-                .FirstOrDefaultAsync(c => c.Id == chatId);
-
-            if (chat == null)
-                throw new Exception("Chat bulunamadı.");
-
-            if (!chat.Users.Any(u => u.Id == userId))
-                throw new Exception("Kullanıcı bu chat'e üye değil.");
-
-            try
+            if (string.IsNullOrWhiteSpace(searchTerm))
             {
-                var messages = await _context.Messages
-                .Where(m => m.ChatId == chatId && m.IsDeleted == false)
-                .Include(m => m.User)
-                .OrderBy(m => m.Time)
-                .Select(m => m.ToMessageForChatDTO())
+                var chat = await GetChatWithUsersAsync(chatId);
+                return chat.Users.ToList();
+            }
+            var users = await DbSet.Where(c => c.Id == chatId)
+                .SelectMany(u => u.Users)
+                .Where((u) => u.Name.ToLower().Contains(searchTerm.ToLower()))
                 .ToListAsync();
-
-                string name = string.Join(string.Empty, chat!.Users
-                    .Where(u => u.Id != userId)
-                    .Select(u => u.Name + ", "));
-
-                name = name.TrimEnd(',', ' ');
-
-                return new ChatWithMessagesDTO
-                {
-                    Name = name,
-                    Messages = messages
-                };
-            }
-            catch (Exception ex)
-            {
-                throw new Exception("An error occurred while retrieving chat messages.", ex);
-            }
-        }
-
-        public async Task DeleteChatAsync(int chatId)
-        {
-            var chat = await _context.Chats
-                .Include(c => c.Users)
-                .FirstOrDefaultAsync(c => c.Id == chatId);
-
-            if (chat == null)
-                throw new ChatNotFoundException();
-
-            _context.Chats.Remove(chat);
-            await _context.SaveChangesAsync();
-
-            return;
+            return users;
         }
     }
 }

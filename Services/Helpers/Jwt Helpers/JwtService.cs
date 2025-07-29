@@ -2,8 +2,8 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
-using Repositories.DTOs;
 using Repositories.Entities;
+using Services.DTOs;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -21,7 +21,7 @@ namespace Services
         private readonly IOptionsMonitor<JwtBearerOptions> _authenticationOptions;
         public LoginResponseDTO Authenticate(User user)
         {
-            var key = Encoding.UTF8.GetBytes(_configuration["JwtConfig:Key"]!);
+            var key = Encoding.UTF8.GetBytes("izi-pizi-lemon-squeezy-oguz-celal-ankaraa");
             var minutes = _configuration.GetValue<int>("JwtConfig:ExpirationInMinutes");
             var tokenExpiration = DateTime.UtcNow.AddMinutes(minutes);
             var tokenDescriptor = new SecurityTokenDescriptor
@@ -45,6 +45,8 @@ namespace Services
             {
                 Token = accessToken,
                 Id = user.Id,
+                Name = user.Name,
+                Email = user.Email,
                 ExpiresIn = tokenExpiration
             };
         }
