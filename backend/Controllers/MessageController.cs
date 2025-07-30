@@ -74,14 +74,14 @@ namespace backend.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> AddAsync([FromForm] CreateMessageRequestDTO message)
+        public async Task<IActionResult> AddAsync([FromBody] Message message)
         {
             if (message.ChatId <= 0 || message.UserId <= 0)
                 return BadRequest("Invalid chat ID or user ID.");
             try
             {
                 
-                await _messageService.AddAsync(_mapper.Map<Message>(message));
+                await _messageService.AddAsync(message);
                 return StatusCode(201);
             }
             catch (ChatNotFoundException ex)
