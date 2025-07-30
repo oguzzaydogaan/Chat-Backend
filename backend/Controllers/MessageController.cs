@@ -1,9 +1,11 @@
-﻿using Exceptions;
+﻿using AutoMapper;
+using Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Repositories.Entities;
 using Services;
+using Services.DTOs;
 
 namespace backend.Controllers
 {
@@ -12,11 +14,14 @@ namespace backend.Controllers
     [Authorize]
     public class MessageController : ControllerBase
     {
-        public MessageController(MessageService messageService)
+        private readonly MessageService _messageService;
+        private readonly IMapper _mapper;
+        public MessageController(MessageService messageService, IMapper mapper)
         {
             _messageService = messageService;
+            _mapper = mapper;
         }
-        private readonly MessageService _messageService;
+
 
         [HttpGet]
         public async Task<IActionResult> GetAllAsync()
@@ -34,7 +39,7 @@ namespace backend.Controllers
             {
                 return StatusCode(500, ex.Message);
             }
-            
+
         }
 
         [HttpGet("{id}")]
@@ -45,9 +50,16 @@ namespace backend.Controllers
             try
             {
                 var message = await _messageService.GetByIdAsync(id);
+                if (message.Image != null)
+                {
+                    using (MemoryStream stream = new(message.Image))
+                    {
+                        return File(stream.ToArray(), "image/png");
+                    }
+                }
                 return Ok(message);
             }
-            catch(KeyNotFoundException ex)
+            catch (KeyNotFoundException ex)
             {
                 return BadRequest(ex.Message);
             }
@@ -62,18 +74,17 @@ namespace backend.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> AddAsync([FromBody] Message message)
+        public async Task<IActionResult> AddAsync([FromForm] CreateMessageRequestDTO message)
         {
-            if (message == null)
-                return BadRequest("Message cannot be null.");
             if (message.ChatId <= 0 || message.UserId <= 0)
                 return BadRequest("Invalid chat ID or user ID.");
             try
             {
-                await _messageService.AddAsync(message);
+                
+                await _messageService.AddAsync(_mapper.Map<Message>(message));
                 return StatusCode(201);
             }
-            catch(ChatNotFoundException ex)
+            catch (ChatNotFoundException ex)
             {
                 return NotFound(ex.Message);
             }

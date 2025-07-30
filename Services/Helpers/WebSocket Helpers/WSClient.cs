@@ -24,7 +24,7 @@ namespace Services
         }
         public async Task ListenClient(int id, DateTime validTo)
         {
-            var buffer = new byte[1024 * 4];
+            var buffer = new byte[1024 * 32];
             WebSocketReceiveResult receiveResult;
 
             do

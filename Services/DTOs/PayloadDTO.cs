@@ -1,4 +1,5 @@
-﻿using Repositories.Entities;
+﻿using Microsoft.AspNetCore.Http;
+using Repositories.Entities;
 
 namespace Services.DTOs
 {
@@ -7,6 +8,7 @@ namespace Services.DTOs
         public int UserId { get; set; }
         public int ChatId { get; set; }
         public string Content { get; set; } = string.Empty;
+        public string ImageString { get; set; } = string.Empty;
         public int? MessageId { get; set; }
         public List<int> Ids { get; set; } = new List<int>();
         public CreateChatRequestDTO? Chat { get; set; }

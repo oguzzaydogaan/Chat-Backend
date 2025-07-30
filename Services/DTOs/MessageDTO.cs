@@ -1,4 +1,5 @@
-﻿using Repositories.Entities;
+﻿using Microsoft.AspNetCore.Http;
+using Repositories.Entities;
 
 namespace Services.DTOs
 {
@@ -11,10 +12,15 @@ namespace Services.DTOs
         public int UserId { get; set; }
         public int ChatId { get; set; }
         public bool IsSystem { get; set; }
+        public byte[]? Image { get; set; }
     }
 
     public class CreateMessageRequestDTO
     {
+        public string? Content { get; set; }
+        public int UserId { get; set; }
+        public int ChatId { get; set; }
+        public string ImageString { get; set; } = string.Empty;
     }
 
     public class GetAllMessagesResDTO
@@ -38,6 +44,7 @@ namespace Services.DTOs
         public bool IsSystem { get; set; }
         public List<MessageRead>? Seens { get; set; }
         public int ChatId { get; set; }
+        public string ImageString { get; set; } = "";
     }
 
     public class MessageWithUsersDTO
