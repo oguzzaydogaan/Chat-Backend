@@ -50,13 +50,6 @@ namespace backend.Controllers
             try
             {
                 var message = await _messageService.GetByIdAsync(id);
-                if (message.Image != null)
-                {
-                    using (MemoryStream stream = new(message.Image))
-                    {
-                        return File(stream.ToArray(), "image/png");
-                    }
-                }
                 return Ok(message);
             }
             catch (KeyNotFoundException ex)

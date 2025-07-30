@@ -94,7 +94,7 @@ namespace Services
             if (messageJson.Type == "seen")
             {
                 socketMessage.Type = "seen";
-                socketMessage.Payload.MessageReads = [];
+                socketMessage.Payload.MessageReads = new List<MessageRead>();
                 var now = DateTime.UtcNow;
                 foreach (var id in messageJson.Payload.Ids)
                 {

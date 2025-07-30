@@ -12,7 +12,7 @@ namespace Services.DTOs
         public int UserId { get; set; }
         public int ChatId { get; set; }
         public bool IsSystem { get; set; }
-        public byte[]? Image { get; set; }
+        public string ImageString { get; set; } = "";
     }
 
     public class CreateMessageRequestDTO
