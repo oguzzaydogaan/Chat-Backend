@@ -10,7 +10,7 @@ namespace Services.DTOs
         public string Content { get; set; } = string.Empty;
         public string ImageString { get; set; } = string.Empty;
         public int? MessageId { get; set; }
-        public List<int> Ids { get; set; } = new List<int>();
+        public List<int> Ids { get; set; } = [];
         public CreateChatRequestDTO? Chat { get; set; }
     }
 
