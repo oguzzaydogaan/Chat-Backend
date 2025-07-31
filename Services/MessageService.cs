@@ -53,6 +53,7 @@ namespace Services
             }
             message.Content = "This message was deleted";
             message.IsDeleted = true;
+            message.ImageString = "";
             message.Chat!.LastUpdate = DateTime.UtcNow;
             foreach (var seen in message.Seens)
             {

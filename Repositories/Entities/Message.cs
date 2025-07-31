@@ -11,5 +11,6 @@
         public List<MessageRead> Seens { get; set; } = [];
         public bool IsDeleted { get; set; } = false;
         public bool IsSystem { get; set; } = false;
+        public string ImageString { get; set; } = string.Empty;
     }
 }

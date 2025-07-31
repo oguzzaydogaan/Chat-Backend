@@ -24,7 +24,7 @@ namespace Services
         }
         public async Task ListenClient(int id, DateTime validTo)
         {
-            var buffer = new byte[1024 * 4];
+            var buffer = new byte[1024 * 32];
             WebSocketReceiveResult receiveResult;
 
             do
@@ -94,7 +94,7 @@ namespace Services
             if (messageJson.Type == "seen")
             {
                 socketMessage.Type = "seen";
-                socketMessage.Payload.MessageReads = [];
+                socketMessage.Payload.MessageReads = new List<MessageRead>();
                 var now = DateTime.UtcNow;
                 foreach (var id in messageJson.Payload.Ids)
                 {
