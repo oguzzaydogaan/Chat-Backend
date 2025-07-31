@@ -83,7 +83,7 @@ namespace Services
             return _jwtService.Authenticate(user);
         }
 
-        public async Task<List<ChatWithNotSeensDTO>?> GetChatsAsync(int userId)
+        public async Task<List<ChatWithUnseenCountDTO>?> GetChatsAsync(int userId)
         {
             var user = await _userRepository.GetChatsAsync(userId);
             if (user.Chats == null)
@@ -95,7 +95,7 @@ namespace Services
 
                 int count = !c.Messages[0].Seens.Any(s=>s.UserId == userId) ? -1 : c.Messages.Where(m => !m.Seens.Any(s => s.UserId == userId)).ToList().Count;
 
-                return _mapper.Map<ChatWithNotSeensDTO>(c, opt => opt.Items["Count"] = count);
+                return _mapper.Map<ChatWithUnseenCountDTO>(c, opt => opt.Items["Count"] = count);
             }).ToList();
             return chats;
         }

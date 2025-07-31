@@ -64,7 +64,7 @@ namespace Services
             return created;
         }
 
-        public async Task<ChatWithMessagesDTO> GetChatWithMessagesAsync(int chatId, int userId)
+        public async Task<ChatWithMessagesAndUsersDTO> GetChatWithMessagesAsync(int chatId, int userId)
         {
             var chat = await _chatRepository.GetChatWithMessagesAndUsersAsync(chatId);
             chat.Messages = chat.Messages.OrderBy(m => m.Time).ToList();
@@ -79,7 +79,7 @@ namespace Services
                 chat.Name = chat.Users.FirstOrDefault(u => u.Id != userId)?.Name ?? throw new Exception("Other user not found");
             }
 
-            var dto = _mapper.Map<ChatWithMessagesDTO>(chat);
+            var dto = _mapper.Map<ChatWithMessagesAndUsersDTO>(chat);
             return dto;
         }
 
