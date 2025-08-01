@@ -120,14 +120,8 @@ namespace Services
                 IsSystem = true,
                 Time = chat.LastUpdate
             };
-            message = await _messageRepository.AddAsync(message);
-            var messageRead = new MessageRead
-            {
-                MessageId = message.Id,
-                UserId = message.UserId,
-                UserName = chat.Users.First(u => u.Id == message.UserId).Name,
-                SeenAt = message.Time
-            };
+            await _messageRepository.AddAsync(message);
+            var messageRead = _mapper.Map<MessageRead>(message);
             message.Seens = [messageRead];
             await _messageRepository.UpdateAsync(message);
             return (chat, message);

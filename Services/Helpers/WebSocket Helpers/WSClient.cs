@@ -24,29 +24,40 @@ namespace Services
         }
         public async Task ListenClient(int id, DateTime validTo)
         {
-            var buffer = new byte[1024 * 32];
+            var buffer = new byte[1024 * 256];
             WebSocketReceiveResult receiveResult;
 
             do
             {
-                receiveResult = await _client.ReceiveAsync(
-                    new ArraySegment<byte>(buffer), CancellationToken.None);
+                string result;
+                using (var ms = new MemoryStream())
+                {
+                    do
+                    {
+                        receiveResult = await _client.ReceiveAsync(
+                        new ArraySegment<byte>(buffer), CancellationToken.None);
+                        ms.Write(buffer, 0, receiveResult.Count);
+                    } while (!receiveResult.EndOfMessage);
+                    ms.Seek(0, SeekOrigin.Begin);
+                    result = Encoding.UTF8.GetString(ms.ToArray());
+                }
+
                 if (validTo < DateTime.UtcNow)
                 {
                     throw new TokenExpiredException();
                 }
                 try
                 {
-                    var res = await ConvertRequest(buffer, receiveResult);
+                    var res = await ConvertRequest(buffer, result);
                     await SendMessageToClients(res.Bytes, res.Users);
                 }
                 catch (ArgumentNullException ex)
                 {
                     await SendErrorToClient(ex.Message);
                 }
-                catch (DbUpdateException)
+                catch (DbUpdateException ex)
                 {
-                    await SendErrorToClient("Database error.");
+                    await SendErrorToClient($"Database error. {ex.Message}");
                 }
                 catch (NotSupportedException)
                 {
@@ -67,7 +78,7 @@ namespace Services
 
         }
 
-        public async Task<BytesWithUsersDTO> ConvertRequest(byte[] buffer, WebSocketReceiveResult receiveResult)
+        public async Task<BytesWithUsersDTO> ConvertRequest(byte[] buffer, string result)
         {
             using var serviceScope = _serviceScopeFactory.CreateScope();
             var _mapper = serviceScope.ServiceProvider.GetService<IMapper>();
@@ -78,8 +89,8 @@ namespace Services
             {
                 throw new ArgumentNullException("An error occured");
             }
-            var messageString = Encoding.UTF8.GetString(buffer, 0, receiveResult.Count);
-            RequestSocketDTO? messageJson = JsonSerializer.Deserialize<RequestSocketDTO>(messageString);
+
+            RequestSocketDTO? messageJson = JsonSerializer.Deserialize<RequestSocketDTO>(result);
             if (string.IsNullOrEmpty(messageJson?.ToString()))
             {
                 throw new ArgumentNullException("Message couldn't send");
@@ -87,9 +98,9 @@ namespace Services
             ResponseSocketDTO socketMessage = new();
             ICollection<User> reviecers = [];
 
-            if (messageJson.Type == "seen")
+            if (messageJson.Type == RequestEventType.Message_See)
             {
-                socketMessage.Type = "seen";
+                socketMessage.Type = ResponseEventType.Message_Seen;
                 socketMessage.Payload.MessageReads = [];
                 var now = DateTime.UtcNow;
                 if (messageJson.Payload.Ids == null)
@@ -115,14 +126,14 @@ namespace Services
                 var chat = await chatService.GetChatWithUsersAsync((int)messageJson.Payload.Id);
                 reviecers = chat.Users;
             }
-            else if (messageJson.Type == "Send-Message")
+            else if (messageJson.Type == RequestEventType.Message_Send)
             {
-                socketMessage.Type = "Send-Message";
+                socketMessage.Type = ResponseEventType.Message_Sent;
                 var message = await messageService.AddAsync(_mapper.Map<Message>(messageJson.Payload.Message));
                 reviecers = message.Chat!.Users;
                 socketMessage.Payload.Message = _mapper.Map<MessageWithSenderAndSeensDTO>(message);
             }
-            else if (messageJson.Type == "Delete-Message")
+            else if (messageJson.Type == RequestEventType.Message_Delete)
             {
                 if (messageJson.Payload.Id == null)
                 {
@@ -130,23 +141,27 @@ namespace Services
                 }
 
                 int mid = (int)messageJson.Payload.Id;
-                socketMessage.Type = "Delete-Message";
+                socketMessage.Type = ResponseEventType.Message_Deleted;
                 var message = await messageService.SoftDeleteAsync(mid, messageJson.Sender.Id);
                 reviecers = message.Chat!.Users;
                 socketMessage.Payload.Message = _mapper.Map<MessageWithSenderAndSeensDTO>(message);
             }
-            else if (messageJson.Type == "New-Chat")
+            else if (messageJson.Type == RequestEventType.Chat_Create)
             {
-                socketMessage.Type = "New-Chat";
+                socketMessage.Type = ResponseEventType.Chat_Created;
                 socketMessage.Sender = messageJson.Sender;
                 var chat = await chatService.AddAsync(messageJson.Payload.Chat, socketMessage.Sender);
                 reviecers = chat.Users;
                 socketMessage.Payload.Chat = _mapper.Map<ChatWithUsersDTO>(chat);
             }
-            else if (messageJson.Type == "User-Join")
+            else if (messageJson.Type == RequestEventType.Chat_AddUser)
             {
-                socketMessage.Type = "User-Join";
+                socketMessage.Type = ResponseEventType.Chat_UserAdded;
                 socketMessage.Sender = messageJson.Sender;
+                if (messageJson.Payload.Message == null)
+                {
+                    throw new ArgumentNullException("Informations cannot be null");
+                }
                 var res = await chatService.AddUserAsync(messageJson.Payload.Message.ChatId, messageJson.Payload.Message.UserId, messageJson.Sender);
                 reviecers = res.Item1.Users;
                 socketMessage.Payload.Message = _mapper.Map<MessageWithSenderAndSeensDTO>(res.Item2);
@@ -164,7 +179,7 @@ namespace Services
         {
             ResponseSocketDTO message = new()
             {
-                Type = "Error",
+                Type = ResponseEventType.Error,
                 Payload =
                 {
                     Error = ex,

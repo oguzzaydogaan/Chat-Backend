@@ -13,8 +13,10 @@ namespace Services.AutoMapper
             CreateMap<Message, MessageDTO>();
             CreateMap<CreateMessageRequestDTO, Message>();
             CreateMap<Message, MessageRead>()
-                .ForMember(dest=> dest.UserName, opt=>opt.MapFrom(src=>src.User!.Name))
-                .ForMember(dest => dest.SeenAt, opt => opt.MapFrom(src => src.Time));
+                .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.User!.Name))
+                .ForMember(dest => dest.SeenAt, opt => opt.MapFrom(src => src.Time))
+                .ForMember(dest => dest.MessageId, opt => opt.MapFrom(src => src.Id))
+                .ForMember(dest => dest.Id, opt => opt.Ignore());
         }
     }
 }
