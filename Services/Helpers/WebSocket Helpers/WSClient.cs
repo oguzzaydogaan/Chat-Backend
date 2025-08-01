@@ -167,6 +167,10 @@ namespace Services
                 socketMessage.Payload.Message = _mapper.Map<MessageWithSenderAndSeensDTO>(res.Item2);
                 socketMessage.Payload.Chat = _mapper.Map<ChatWithUsersDTO>(res.Item1);
             }
+            else
+            {
+                throw new Exception("Bad message type");
+            }
 
             var json = JsonSerializer.Serialize(socketMessage);
             var bytes = Encoding.UTF8.GetBytes(json);

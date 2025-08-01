@@ -110,8 +110,8 @@ namespace Services
 
             chat.Users.Add(user);
             chat.LastUpdate = DateTime.UtcNow;
+            await _chatRepository.UpdateAsync(chat);
 
-            var updated = await _chatRepository.UpdateAsync(chat);
             var message = new Message()
             {
                 UserId = sender.Id,
@@ -121,9 +121,11 @@ namespace Services
                 Time = chat.LastUpdate
             };
             await _messageRepository.AddAsync(message);
+
             var messageRead = _mapper.Map<MessageRead>(message);
             message.Seens = [messageRead];
             await _messageRepository.UpdateAsync(message);
+
             return (chat, message);
         }
 
