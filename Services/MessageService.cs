@@ -30,7 +30,7 @@ namespace Services
             await _messageRepository.AddAsync(message);
 
             var messageRead = _mapper.Map<MessageRead>(message);
-            message.Seens = [messageRead];
+            message.Seens = new List<MessageRead> { messageRead};
 
             chat.LastUpdate = message.Time;
             await _chatRepository.SaveChangesAsync();
