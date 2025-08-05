@@ -1,24 +1,23 @@
-# Geliştirme aşaması için .NET SDK imajını temel al
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build-env
+# base image
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
 WORKDIR /app
+EXPOSE 5000
 
-# Çözüm dosyasını kopyala
-COPY backend.sln ./
+# build image
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
 
-# Tüm proje dosyalarını kopyala
-COPY . ./
+# Proje dosyalarını kopyala
+COPY . .
 
-# Bağımlılıkları yükle (çözüm dosyasını kullanarak)
-RUN dotnet restore
+# Projeyi restore et
+RUN dotnet restore "backend/backend.csproj"
 
-# Ana proje dizinine geç
-WORKDIR /app/backend
+# Build + publish
+RUN dotnet publish "backend/backend.csproj" -c Release -o /app/publish
 
-# Uygulamayı yayınla
-RUN dotnet publish -c Release -o out
-
-# Çalıştırma aşaması için ASP.NET Core runtime imajını temel al (web uygulamaları için)
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
+# final image
+FROM base AS final
 WORKDIR /app
-COPY --from=build-env /app/backend/out ./
+COPY --from=build /app/publish .
 ENTRYPOINT ["dotnet", "backend.dll"]
