@@ -96,12 +96,12 @@ namespace Services
                 throw new ArgumentNullException("Message couldn't send");
             }
             ResponseSocketDTO socketMessage = new();
-            ICollection<User> reviecers = [];
+            ICollection<User> reviecers = new List<User>();
 
             if (messageJson.Type == RequestEventType.Message_See)
             {
                 socketMessage.Type = ResponseEventType.Message_Seen;
-                socketMessage.Payload.MessageReads = [];
+                socketMessage.Payload.MessageReads = new List<MessageRead>();
                 var now = DateTime.UtcNow;
                 if (messageJson.Payload.Ids == null)
                 {

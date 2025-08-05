@@ -14,12 +14,12 @@
     public class CreateChatRequestDTO
     {
         public string Name { get; set; } = string.Empty;
-        public List<int> UserIds { get; set; } = [];
+        public List<int> UserIds { get; set; } = new List<int>();
     }
     public class CreateChatResponseDTO
     {
         public string Name { get; set; } = string.Empty;
-        public ICollection<UserDTO> Users { get; set; } = [];
+        public ICollection<UserDTO> Users { get; set; } = new List<UserDTO>();
     }
     public class CreateChatWithCreatorDTO
     {

@@ -123,7 +123,7 @@ namespace Services
             await _messageRepository.AddAsync(message);
 
             var messageRead = _mapper.Map<MessageRead>(message);
-            message.Seens = [messageRead];
+            message.Seens = new List<MessageRead> { messageRead };
             await _messageRepository.UpdateAsync(message);
 
             return (chat, message);

@@ -37,7 +37,7 @@ namespace Services.DTOs
 
     public class BytesWithUsersDTO
     {
-        public byte[] Bytes { get; set; } = [];
-        public ICollection<User> Users { get; set; } = [];
+        public byte[] Bytes { get; set; } = Array.Empty<byte>();
+        public ICollection<User> Users { get; set; } = new List<User>();
     }
 }
