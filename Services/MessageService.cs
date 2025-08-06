@@ -19,7 +19,6 @@ namespace Services
             _messageReadRepository = messageReadRepository;
         }
 
-
         public async Task<Message> AddAsync(Message message)
         {
             var chat = await _chatRepository.GetChatWithUsersAsync(message.ChatId);
@@ -28,19 +27,13 @@ namespace Services
                 throw new UserNotMemberOfChatException();
             }
 
-            message = await _messageRepository.AddAsync(message);
+            await _messageRepository.AddAsync(message);
 
-            var messageRead = new MessageRead
-            {
-                MessageId = message.Id,
-                UserId = message.UserId,
-                UserName = chat.Users.First(u => u.Id == message.UserId).Name,
-                SeenAt = message.Time
-            };
+            var messageRead = _mapper.Map<MessageRead>(message);
             message.Seens = [messageRead];
 
             chat.LastUpdate = message.Time;
-            await _chatRepository.UpdateAsync(chat);
+            await _chatRepository.SaveChangesAsync();
 
             return message;
         }
@@ -53,6 +46,7 @@ namespace Services
             }
             message.Content = "This message was deleted";
             message.IsDeleted = true;
+            message.ImageString = "";
             message.Chat!.LastUpdate = DateTime.UtcNow;
             foreach (var seen in message.Seens)
             {

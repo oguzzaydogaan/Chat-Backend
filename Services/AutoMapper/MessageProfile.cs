@@ -8,13 +8,15 @@ namespace Services.AutoMapper
     {
         public MessageProfile()
         {
-            CreateMap<Message, MessageForChatDTO>()
+            CreateMap<Message, MessageWithSenderAndSeensDTO>()
             .ForMember(dest => dest.Sender, opt => opt.MapFrom(src => src.User));
             CreateMap<Message, MessageDTO>();
-            CreateMap<RequestPayloadDTO, Message>();
+            CreateMap<CreateMessageRequestDTO, Message>();
             CreateMap<Message, MessageRead>()
-                .ForMember(dest=> dest.UserName, opt=>opt.MapFrom(src=>src.User!.Name))
-                .ForMember(dest => dest.SeenAt, opt => opt.MapFrom(src => src.Time));
+                .ForMember(dest => dest.UserName, opt => opt.MapFrom(src => src.User!.Name))
+                .ForMember(dest => dest.SeenAt, opt => opt.MapFrom(src => src.Time))
+                .ForMember(dest => dest.MessageId, opt => opt.MapFrom(src => src.Id))
+                .ForMember(dest => dest.Id, opt => opt.Ignore());
         }
     }
 }

@@ -64,7 +64,7 @@ namespace Services
             return created;
         }
 
-        public async Task<ChatWithMessagesDTO> GetChatWithMessagesAsync(int chatId, int userId)
+        public async Task<ChatWithMessagesAndUsersDTO> GetChatWithMessagesAsync(int chatId, int userId)
         {
             var chat = await _chatRepository.GetChatWithMessagesAndUsersAsync(chatId);
             chat.Messages = chat.Messages.OrderBy(m => m.Time).ToList();
@@ -79,7 +79,7 @@ namespace Services
                 chat.Name = chat.Users.FirstOrDefault(u => u.Id != userId)?.Name ?? throw new Exception("Other user not found");
             }
 
-            var dto = _mapper.Map<ChatWithMessagesDTO>(chat);
+            var dto = _mapper.Map<ChatWithMessagesAndUsersDTO>(chat);
             return dto;
         }
 
@@ -110,8 +110,8 @@ namespace Services
 
             chat.Users.Add(user);
             chat.LastUpdate = DateTime.UtcNow;
+            await _chatRepository.UpdateAsync(chat);
 
-            var updated = await _chatRepository.UpdateAsync(chat);
             var message = new Message()
             {
                 UserId = sender.Id,
@@ -120,16 +120,12 @@ namespace Services
                 IsSystem = true,
                 Time = chat.LastUpdate
             };
-            message = await _messageRepository.AddAsync(message);
-            var messageRead = new MessageRead
-            {
-                MessageId = message.Id,
-                UserId = message.UserId,
-                UserName = chat.Users.First(u => u.Id == message.UserId).Name,
-                SeenAt = message.Time
-            };
+            await _messageRepository.AddAsync(message);
+
+            var messageRead = _mapper.Map<MessageRead>(message);
             message.Seens = [messageRead];
             await _messageRepository.UpdateAsync(message);
+
             return (chat, message);
         }
 
