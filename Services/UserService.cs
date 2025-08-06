@@ -25,6 +25,12 @@ namespace Services
             _mailSender = mailSender;
         }
 
+        public async Task<List<UserDTO>> GetVerifiedsAsync()
+        {
+            var users = await _userRepository.GetVerifiedsAsync();
+            var dtos = users.Select(u=>_mapper.Map<UserDTO>(u)).ToList();
+            return dtos;
+        }
         public async Task RegisterAsync(RegisterRequestDTO registerRequest)
         {
             Regex regex = new Regex("^(?=.*[A-Za-z])(?=.*[0-9])(?=.*[^a-zA-Z0-9]).{6,}$");

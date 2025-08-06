@@ -37,6 +37,24 @@ namespace backend.Controllers
 
         }
 
+        [HttpGet("verifieds")]
+        public async Task<IActionResult> GetAllVerifieds()
+        {
+            try
+            {
+                var users = await _userService.GetVerifiedsAsync();
+                return Ok(users);
+            }
+            catch (DbUpdateException)
+            {
+                return StatusCode(500, "Database error occurred while retrieving users");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(400, ex.Message);
+            }
+        }
+
         [HttpGet("{id}")]
         public async Task<IActionResult> GetByIdAsync(int id)
         {
