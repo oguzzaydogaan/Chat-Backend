@@ -7,7 +7,7 @@ namespace Services.Helpers.Mail_Helpers
     {
         public async Task SendEmailAsync(string email, string token)
         {
-            var verificationLink = $"https://localhost:7193/api/users/verify?email={Uri.EscapeDataString(email)}&token={Uri.EscapeDataString(token)}";
+            var verificationLink = $"https://api.oguzzaydogaan.com.tr/api/users/verify?email={Uri.EscapeDataString(email)}&token={Uri.EscapeDataString(token)}";
             MailMessage message = new()
             {
                 From = new MailAddress("testchat.0606@gmail.com"),
