@@ -132,6 +132,7 @@ namespace Services
                 var message = await messageService.AddAsync(_mapper.Map<Message>(messageJson.Payload.Message));
                 reviecers = message.Chat!.Users;
                 socketMessage.Payload.Message = _mapper.Map<MessageWithSenderAndSeensDTO>(message);
+                socketMessage.Payload.Message.LocalId = messageJson.Payload.Message!.LocalId;
             }
             else if (messageJson.Type == RequestEventType.Message_Delete)
             {
