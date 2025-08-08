@@ -14,6 +14,11 @@ namespace Repositories.Repositories
             _passwordHasher = passwordHasher;
         }
 
+        public async Task<List<User>> GetVerifiedsAsync()
+        {
+            var users = await DbSet.Where(u=>u.IsEmailConfirmed==true).ToListAsync();
+            return users;
+        }
         public async Task<User?> GetByEmailAsync(string email)
         {
             var user = await DbSet.FirstOrDefaultAsync(u => u.Email == email);
