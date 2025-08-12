@@ -17,6 +17,7 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\Exceptions\Exceptions.csproj" />
+		<ProjectReference Include="..\RawMessageWorker\RawMessageWorker.csproj" />
 		<ProjectReference Include="..\Repositories\Repositories.csproj" />
 		<ProjectReference Include="..\Services\Services.csproj" />
 	</ItemGroup>
