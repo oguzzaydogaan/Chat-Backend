@@ -30,11 +30,13 @@ namespace RawMessageWorker
             _connection = await factory.CreateConnectionAsync();
             _channel = await _connection.CreateChannelAsync();
 
-            await _channel.QueueDeclareAsync(queue: "raw_messages", durable: true, exclusive: false,
+            string mainQueueName = "raw_messages";
+            await _channel.QueueDeclareAsync(queue: mainQueueName, durable: true, exclusive: false,
                 autoDelete: false, arguments: null);
+
             await _channel.BasicQosAsync(prefetchSize: 0, prefetchCount: 1, global: false);
 
-            _logger.LogInformation("RabbitMQ bağlantısı kuruldu ve 'chat_messages' kuyruğu oluşturuldu.");
+            _logger.LogInformation("RabbitMQ bağlantısı kuruldu ve 'raw_messages' kuyruğu oluşturuldu.");
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -55,9 +57,9 @@ namespace RawMessageWorker
                         await processMessageService.ProcessMessageAsync(message);
                         await _channel!.BasicAckAsync(deliveryTag: ea.DeliveryTag, multiple: false);
                     }
-                    catch(Exception ex)
+                    catch (Exception ex)
                     {
-                        Console.WriteLine($"Mesaj işlenirken hata: {ex.Message}");
+                        _logger.LogError("Websocket mesajı işlenirken hata: " + ex.Message);
                         await _channel!.BasicNackAsync(ea.DeliveryTag, multiple: false, requeue: false);
                     }
                 }

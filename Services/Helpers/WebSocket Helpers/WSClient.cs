@@ -1,4 +1,6 @@
 ﻿using Exceptions;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
 using System.Net.WebSockets;
 
@@ -7,10 +9,12 @@ namespace Services
     public class WSClient
     {
         public WebSocket _client;
+        private readonly IServiceScopeFactory _scopeFactory;
 
-        public WSClient(WebSocket client)
+        public WSClient(WebSocket client, IServiceScopeFactory scopeFactory)
         {
             _client = client;
+            _scopeFactory = scopeFactory;
         }
         public async Task ListenClient(DateTime validTo)
         {
@@ -59,7 +63,9 @@ namespace Services
                 }
                 catch (Exception ex)
                 {
-
+                    using var scope = _scopeFactory.CreateScope();
+                    var logger = scope.ServiceProvider.GetRequiredService<ILogger<WSClient>>();
+                    logger.LogError($"Websocket mesajı kuyruğa yazılırken hata: {ex.Message}");
                 }
             }
         }

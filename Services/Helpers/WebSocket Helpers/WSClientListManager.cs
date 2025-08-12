@@ -1,4 +1,6 @@
 ﻿using Exceptions;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.Net.WebSockets;
 
@@ -7,11 +9,15 @@ namespace Services
     public class WSClientListManager
     {
         public ConcurrentDictionary<int, WSClient> Clients = new();
+        private readonly IServiceScopeFactory _scopeFactory;
+        public WSClientListManager(IServiceScopeFactory scopeFactory) {
+            _scopeFactory = scopeFactory;
+        }
 
         public async Task AddClient(int id, WebSocket ws, DateTime validTo)
         {
             await RemoveClient(id, "Another device connected");
-            var wSClient = new WSClient(ws);
+            var wSClient = new WSClient(ws,_scopeFactory);
             if (!Clients.TryAdd(id, wSClient))
             {
                 await wSClient.CloseAsync("Client could not be added");
@@ -56,7 +62,6 @@ namespace Services
             }
             throw new Exception("Client can't found.");
         }
-
         
     }
 }
