@@ -20,6 +20,8 @@ namespace Services.DTOs
         public int UserId { get; set; }
         public int ChatId { get; set; }
         public string ImageString { get; set; } = string.Empty;
+        public DateTime Time { get; set; } = DateTime.UtcNow;
+        public string LocalId { get; set; } = string.Empty;
     }
 
     public class MessageWithSenderAndSeensDTO
@@ -33,6 +35,7 @@ namespace Services.DTOs
         public ICollection<MessageRead>? Seens { get; set; }
         public int ChatId { get; set; }
         public string ImageString { get; set; } = "";
+        public string LocalId { get; set; } = string.Empty;
     }
 
     public class BytesWithUsersDTO

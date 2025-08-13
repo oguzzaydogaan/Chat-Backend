@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.IdentityModel.Tokens;
 using Services;
 using System.IdentityModel.Tokens.Jwt;
 
@@ -21,13 +22,20 @@ namespace backend.Controllers
             if (HttpContext.WebSockets.IsWebSocketRequest)
             {
                 
-                var webSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
-                string? token = HttpContext.Request.Query["accessToken"];
+                try
+                {
+                    string? token = HttpContext.Request.Query["accessToken"];
+                    var validatedToken = _jwtService.Validate(token) as JwtSecurityToken;
+                    int id = int.Parse(validatedToken!.Claims.FirstOrDefault(c => c.Type == "UserId")!.Value);
 
-                var validatedToken = _jwtService.Validate(token) as JwtSecurityToken;
-                int id = int.Parse(validatedToken!.Claims.FirstOrDefault(c => c.Type == "UserId")!.Value);
+                    var webSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
 
-                await _wsClientListManager.AddClient(id, webSocket, validatedToken.ValidTo);
+                    await _wsClientListManager.AddClient(id, webSocket, validatedToken.ValidTo);
+                }
+                catch(SecurityTokenException ex)
+                {
+                    return;
+                }
             }
         }
     }

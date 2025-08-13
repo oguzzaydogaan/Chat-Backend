@@ -16,10 +16,12 @@ namespace backend.Controllers
     {
         private readonly ChatService _chatService;
         private readonly IMapper _mapper;
-        public ChatController(ChatService chatService, IMapper mapper)
+        private readonly ILogger<ChatController> _logger;
+        public ChatController(ChatService chatService, IMapper mapper, ILogger<ChatController> logger)
         {
             _chatService = chatService;
             _mapper = mapper;
+            _logger = logger;
         }
 
         [HttpGet]
@@ -54,8 +56,9 @@ namespace backend.Controllers
             {
                 return BadRequest(ex.Message);
             }
-            catch (DbUpdateException)
+            catch (DbUpdateException ex)
             {
+                _logger.LogError($"DB Error: {ex.Message}");
                 return StatusCode(500, "Database error occurred while adding message");
             }
             catch (Exception ex)
@@ -79,8 +82,9 @@ namespace backend.Controllers
             {
                 return BadRequest("JSON serialization error");
             }
-            catch (DbUpdateException)
+            catch (DbUpdateException ex)
             {
+                _logger.LogError($"DB Error: {ex.Message}");
                 return StatusCode(500, "Database error occurred while retrieving chat");
             }
             catch (Exception ex)
@@ -100,8 +104,9 @@ namespace backend.Controllers
             {
                 return Conflict(ex.Message);
             }
-            catch (DbUpdateException)
+            catch (DbUpdateException ex)
             {
+                _logger.LogError($"DB Error: {ex.Message}");
                 return StatusCode(500, "Database error occurred while creating chat");
             }
             catch (Exception ex)
@@ -131,8 +136,9 @@ namespace backend.Controllers
             {
                 return Conflict(ex.Message);
             }
-            catch (DbUpdateException)
+            catch (DbUpdateException ex)
             {
+                _logger.LogError($"DB Error: {ex.Message}");
                 return StatusCode(500, "Database error occurred while adding user to chat");
             }
             catch (Exception ex)
@@ -155,8 +161,9 @@ namespace backend.Controllers
             {
                 return NotFound(ex.Message);
             }
-            catch (DbUpdateException)
+            catch (DbUpdateException ex)
             {
+                _logger.LogError($"DB Error: {ex.Message}");
                 return StatusCode(500, "Database error occurred while deleting chat");
             }
             catch (Exception ex)
@@ -173,8 +180,9 @@ namespace backend.Controllers
                 var users = await _chatService.SearchUsersAsync(chatId, searchTerm);
                 return Ok(JsonSerializer.Serialize(users));
             }
-            catch (DbUpdateException)
+            catch (DbUpdateException ex)
             {
+                _logger.LogError($"DB Error: {ex.Message}");
                 return StatusCode(500, "Database error occurred while searching chats");
             }
             catch (Exception ex)
