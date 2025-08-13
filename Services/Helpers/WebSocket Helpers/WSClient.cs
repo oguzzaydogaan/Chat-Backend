@@ -1,4 +1,5 @@
 ﻿using Exceptions;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
@@ -20,8 +21,20 @@ namespace Services
         {
             var buffer = new byte[1024 * 256];
             WebSocketReceiveResult receiveResult;
+            ConnectionFactory factory;
 
-            var factory = new ConnectionFactory { HostName = "localhost" };
+            using (var scope = _scopeFactory.CreateScope())
+            {
+                var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+                factory = new ConnectionFactory
+                {
+                    HostName = configuration["RabbitMQ:HostName"] ?? throw new ConfigurationException("MQ hostname is null."),
+                    Port = int.Parse(configuration["RabbitMQ:Port"] ?? throw new ConfigurationException("MQ port is null.")),
+                    UserName = configuration["RabbitMQ:UserName"] ?? throw new ConfigurationException("MQ username is null."),
+                    Password = configuration["RabbitMQ:Password"] ?? throw new ConfigurationException("MQ password is null.")
+                };
+            }
+            
             using var connection = await factory.CreateConnectionAsync();
             using var channel = await connection.CreateChannelAsync();
 
