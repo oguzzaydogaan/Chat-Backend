@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Exceptions;
+using Microsoft.Extensions.Logging;
 using Repositories.Entities;
 using Services;
 using Services.DTOs;
@@ -16,15 +17,18 @@ namespace RawMessageWorker
         private readonly ChatService _chatService;
         private readonly WSClientListManager _wSClientListManager;
         private readonly IMapper _mapper;
+        private readonly ILogger<ProcessMessage> _logger;
 
-        public ProcessMessage(MessageService messageService, MessageReadService messageReadService, ChatService chatService, IMapper mapper, WSClientListManager wSClientListManager)
+        public ProcessMessage(MessageService messageService, MessageReadService messageReadService, ChatService chatService, IMapper mapper, WSClientListManager wSClientListManager, ILogger<ProcessMessage> logger)
         {
             _messageService = messageService;
             _messageReadService = messageReadService;
             _chatService = chatService;
             _mapper = mapper;
+            _logger = logger;
             _wSClientListManager = wSClientListManager;
         }
+
         public async Task ProcessMessageAsync(string result)
         {
             RequestSocketDTO? messageJson = new();
@@ -124,12 +128,17 @@ namespace RawMessageWorker
             {
                 await SendErrorToClientAsync(messageJson!.Sender.Id, ex.Message, ex.RedirectChatId);
             }
+            catch(JsonException ex)
+            {
+                _logger.LogError($"JSON error: {ex.Message}");
+            }
             catch (Exception ex)
             {
                 await SendErrorToClientAsync(messageJson!.Sender.Id, ex.Message);
             }
 
         }
+
         public async Task SendErrorToClientAsync(int uid, string ex, int id = -1)
         {
             ResponseSocketDTO message = new()

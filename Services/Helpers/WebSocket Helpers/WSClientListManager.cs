@@ -38,9 +38,11 @@ namespace Services
             catch(ConfigurationException ex)
             {
                 _logger.LogError(ex.Message);
+                await RemoveClient(id, "System error. Please try again later.", ws);
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex.Message);
                 await RemoveClient(id, ex.Message, ws);
             }
 

@@ -12,11 +12,13 @@ namespace backend.Controllers
     [Authorize]
     public class UserController : ControllerBase
     {
-        public UserController(UserService userService)
+        private readonly UserService _userService;
+        private readonly ILogger<UserController> _logger;
+        public UserController(UserService userService, ILogger<UserController> logger)
         {
             _userService = userService;
-        }
-        private readonly UserService _userService;
+            _logger = logger;
+        }     
 
         [HttpGet]
         public async Task<IActionResult> GetAllAsync()
@@ -26,8 +28,9 @@ namespace backend.Controllers
                 var users = await _userService.GetAllAsync();
                 return Ok(users);
             }
-            catch (DbUpdateException)
+            catch (DbUpdateException ex)
             {
+                _logger.LogError($"DB Error: {ex.Message}");
                 return StatusCode(500, "Database error occurred while retrieving users");
             }
             catch (Exception ex)
@@ -45,8 +48,9 @@ namespace backend.Controllers
                 var users = await _userService.GetVerifiedsAsync();
                 return Ok(users);
             }
-            catch (DbUpdateException)
+            catch (DbUpdateException ex)
             {
+                _logger.LogError($"DB Error: {ex.Message}");
                 return StatusCode(500, "Database error occurred while retrieving users");
             }
             catch (Exception ex)
@@ -69,8 +73,9 @@ namespace backend.Controllers
             {
                 return BadRequest(ex.Message);
             }
-            catch (DbUpdateException)
+            catch (DbUpdateException ex)
             {
+                _logger.LogError($"DB Error: {ex.Message}");
                 return StatusCode(500, "Database error occured while retrieving user");
             }
             catch (Exception ex)
@@ -88,8 +93,9 @@ namespace backend.Controllers
                 await _userService.RegisterAsync(registerRequest);
                 return Ok();
             }
-            catch (DbUpdateException)
+            catch (DbUpdateException ex)
             {
+                _logger.LogError($"DB Error: {ex.Message}");
                 return StatusCode(500, "Database error occured while adding user");
             }
             catch (Exception ex)
@@ -108,6 +114,7 @@ namespace backend.Controllers
             }
             catch (DbUpdateException ex)
             {
+                _logger.LogError($"DB Error: {ex.Message}");
                 return StatusCode(500, ex.Message);
             }
             catch (Exception ex)
@@ -124,12 +131,14 @@ namespace backend.Controllers
                 var chats = await _userService.GetChatsAsync(userId);
                 return Ok(chats);
             }
-            catch (DbUpdateException)
+            catch (DbUpdateException ex)
             {
+                _logger.LogError($"DB Error: {ex.Message}");
                 return StatusCode(500, "Database error occured while getting chats");
             }
             catch (Exception ex)
             {
+                _logger.LogError($"DB Error: {ex.Message}");
                 return StatusCode(400, ex.Message);
             }
         }
@@ -147,8 +156,9 @@ namespace backend.Controllers
             {
                 return StatusCode(403, ex.Message);
             }
-            catch (DbUpdateException)
+            catch (DbUpdateException ex)
             {
+                _logger.LogError($"DB Error: {ex.Message}");
                 return StatusCode(500, "Database error occured");
             }
             catch (Exception ex)
@@ -165,8 +175,9 @@ namespace backend.Controllers
                 var response = await _userService.DeleteAsync(id);
                 return Ok(response);
             }
-            catch (DbUpdateException)
+            catch (DbUpdateException ex)
             {
+                _logger.LogError($"DB Error: {ex.Message}");
                 return StatusCode(500, "Database error occured");
             }
             catch (KeyNotFoundException ex)
@@ -187,8 +198,9 @@ namespace backend.Controllers
                 var chats = await _userService.SearchChatsAsync(userId, searchTerm);
                 return Ok(chats);
             }
-            catch (DbUpdateException)
+            catch (DbUpdateException ex)
             {
+                _logger.LogError($"DB Error: {ex.Message}");
                 return StatusCode(500, "Database error occurred while searching chats");
             }
             catch (Exception ex)

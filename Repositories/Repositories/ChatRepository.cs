@@ -46,6 +46,7 @@ namespace Repositories.Repositories
                     .ThenInclude(m => m.User)
                 .Include(c => c.Messages)
                     .ThenInclude(m => m.Seens)
+                .AsSplitQuery()
                 .FirstOrDefaultAsync(c => c.Id == chatId);
 
             if (chat == null)
