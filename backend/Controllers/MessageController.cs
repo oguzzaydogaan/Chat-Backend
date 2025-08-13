@@ -16,10 +16,12 @@ namespace backend.Controllers
     {
         private readonly MessageService _messageService;
         private readonly IMapper _mapper;
-        public MessageController(MessageService messageService, IMapper mapper)
+        private readonly ILogger<MessageController> _logger;
+        public MessageController(MessageService messageService, IMapper mapper, ILogger<MessageController> logger)
         {
             _messageService = messageService;
             _mapper = mapper;
+            _logger = logger;
         }
 
 
@@ -31,8 +33,9 @@ namespace backend.Controllers
                 var messages = await _messageService.GetAllAsync();
                 return Ok(messages);
             }
-            catch (DbUpdateException)
+            catch (DbUpdateException ex)
             {
+                _logger.LogError($"DB Error: {ex.Message}");
                 return StatusCode(500, "Database error occurred while adding message");
             }
             catch (Exception ex)
@@ -56,8 +59,9 @@ namespace backend.Controllers
             {
                 return BadRequest(ex.Message);
             }
-            catch (DbUpdateException)
+            catch (DbUpdateException ex)
             {
+                _logger.LogError($"DB Error: {ex.Message}");
                 return StatusCode(500, "Database error occurred while adding message");
             }
             catch (Exception ex)
@@ -85,8 +89,9 @@ namespace backend.Controllers
             {
                 return BadRequest(ex.Message);
             }
-            catch (DbUpdateException)
+            catch (DbUpdateException ex)
             {
+                _logger.LogError($"DB Error: {ex.Message}");
                 return StatusCode(500, "Database error occurred while adding message");
             }
             catch (Exception ex)
@@ -106,6 +111,7 @@ namespace backend.Controllers
             }
             catch (Exception ex)
             {
+                _logger.LogError($"DB Error: {ex.Message}");
                 return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
             }
         }

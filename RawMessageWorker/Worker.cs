@@ -1,4 +1,6 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Exceptions;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
@@ -22,10 +24,19 @@ namespace RawMessageWorker
 
         private async Task InitializeRabbitMQ()
         {
-            var factory = new ConnectionFactory()
+            ConnectionFactory factory;
+
+            using (var scope = _scopeFactory.CreateScope())
             {
-                HostName = "localhost"
-            };
+                var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+                factory = new ConnectionFactory
+                {
+                    HostName = configuration["RabbitMQ:HostName"] ?? throw new ConfigurationException("MQ hostname is null."),
+                    Port = int.Parse(configuration["RabbitMQ:Port"] ?? throw new ConfigurationException("MQ port is null.")),
+                    UserName = configuration["RabbitMQ:UserName"] ?? throw new ConfigurationException("MQ username is null."),
+                    Password = configuration["RabbitMQ:Password"] ?? throw new ConfigurationException("MQ password is null.")
+                };
+            }
 
             _connection = await factory.CreateConnectionAsync();
             _channel = await _connection.CreateChannelAsync();
@@ -41,7 +52,18 @@ namespace RawMessageWorker
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            await InitializeRabbitMQ();
+            try
+            {
+                await InitializeRabbitMQ();
+            }
+            catch (ConfigurationException ex)
+            {
+                _logger.LogError(ex.Message);
+            }
+            catch(Exception ex) {
+                _logger.LogError(ex.Message);
+            }
+
             var consumer = new AsyncEventingBasicConsumer(_channel!);
 
             consumer.ReceivedAsync += async (model, ea) =>

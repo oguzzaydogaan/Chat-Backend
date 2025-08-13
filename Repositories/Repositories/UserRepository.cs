@@ -42,6 +42,7 @@ namespace Repositories.Repositories
                 .Include(u => u.Chats)
                 .ThenInclude(c => c.Messages)
                 .ThenInclude(m => m.Seens)
+                .AsSplitQuery()
                 .FirstOrDefaultAsync(u => u.Id == userId);
             if (user == null)
                 throw new Exception("User not found");

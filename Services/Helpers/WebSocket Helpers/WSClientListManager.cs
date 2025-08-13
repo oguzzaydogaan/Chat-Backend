@@ -10,8 +10,11 @@ namespace Services
     {
         public ConcurrentDictionary<int, WSClient> Clients = new();
         private readonly IServiceScopeFactory _scopeFactory;
-        public WSClientListManager(IServiceScopeFactory scopeFactory) {
+        private readonly ILogger<WSClientListManager> _logger;
+        public WSClientListManager(IServiceScopeFactory scopeFactory, ILogger<WSClientListManager> logger)
+        {
             _scopeFactory = scopeFactory;
+            _logger = logger;
         }
 
         public async Task AddClient(int id, WebSocket ws, DateTime validTo)
@@ -32,8 +35,14 @@ namespace Services
             {
                 await RemoveClient(id, ex.Message, ws);
             }
+            catch(ConfigurationException ex)
+            {
+                _logger.LogError(ex.Message);
+                await RemoveClient(id, "System error. Please try again later.", ws);
+            }
             catch (Exception ex)
             {
+                _logger.LogError(ex.Message);
                 await RemoveClient(id, ex.Message, ws);
             }
 
