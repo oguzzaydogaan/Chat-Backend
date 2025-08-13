@@ -2,8 +2,11 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using RawMessageWorker;
 using Repositories.Context;
 using Repositories.Repositories;
+using Serilog;
+using Serilog.Events;
 using Services;
 using Services.AutoMapper;
 using Services.Helpers.Mail_Helpers;
@@ -46,6 +49,8 @@ builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<ChatService>();
 builder.Services.AddScoped<MessageService>();
 builder.Services.AddSingleton<WSClientListManager>();
+builder.Services.AddScoped<ProcessMessage>();
+builder.Services.AddHostedService<Worker>();
 
 builder.Services.AddCors(options =>
 {
@@ -59,6 +64,14 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Information()
+    .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
+    .WriteTo.Console()
+    .WriteTo.Seq("http://localhost:5341")
+    .CreateLogger();
+
+builder.Host.UseSerilog();
 
 var app = builder.Build();
 

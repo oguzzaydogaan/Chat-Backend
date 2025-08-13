@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Services", "Services\Servic
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Exceptions", "Exceptions\Exceptions.csproj", "{ADD7D611-CD41-4EB2-9FBF-C7F867A55215}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RawMessageWorker", "RawMessageWorker\RawMessageWorker.csproj", "{AF34719B-4A40-4699-A5F8-F13F2866404F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +35,10 @@ Global
 		{ADD7D611-CD41-4EB2-9FBF-C7F867A55215}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{ADD7D611-CD41-4EB2-9FBF-C7F867A55215}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{ADD7D611-CD41-4EB2-9FBF-C7F867A55215}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AF34719B-4A40-4699-A5F8-F13F2866404F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AF34719B-4A40-4699-A5F8-F13F2866404F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AF34719B-4A40-4699-A5F8-F13F2866404F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AF34719B-4A40-4699-A5F8-F13F2866404F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
