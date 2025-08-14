@@ -9,6 +9,7 @@ using Serilog;
 using Services;
 using Services.AutoMapper;
 using Services.Helpers.Mail_Helpers;
+using Services.Helpers.WebSocket_Helpers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -47,7 +48,8 @@ builder.Services.AddScoped<MessageRepository>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<ChatService>();
 builder.Services.AddScoped<MessageService>();
-builder.Services.AddSingleton<WSClientListManager>();
+builder.Services.AddSingleton<WSListManager>();
+builder.Services.AddScoped<WSManager>();
 builder.Services.AddScoped<ProcessMessage>();
 builder.Services.AddHostedService<Worker>();
 

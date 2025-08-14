@@ -1,6 +1,6 @@
 ﻿namespace Exceptions
 {
-    public class UserNotMemberOfChatException : Exception
+    public class UserNotMemberOfChatException : UIException
     {
         public UserNotMemberOfChatException()
             :base("User not member of chat")

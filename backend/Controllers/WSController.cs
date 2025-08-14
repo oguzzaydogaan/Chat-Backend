@@ -8,13 +8,13 @@ namespace backend.Controllers
     [Route("/ws/message")]
     public class WSController : ControllerBase
     {
-        public WSController(JwtService jwtService, WSClientListManager wsClientListManager)
+        public WSController(JwtService jwtService, WSListManager wsClientListManager)
         {
             _jwtService = jwtService;
             _wsClientListManager = wsClientListManager;
         }
         private readonly JwtService _jwtService;
-        private readonly WSClientListManager _wsClientListManager;
+        private readonly WSListManager _wsClientListManager;
 
         [HttpGet]
         public async Task Get()
@@ -32,7 +32,7 @@ namespace backend.Controllers
 
                     await _wsClientListManager.AddClient(id, webSocket, validatedToken.ValidTo);
                 }
-                catch(SecurityTokenException ex)
+                catch(SecurityTokenException)
                 {
                     return;
                 }
