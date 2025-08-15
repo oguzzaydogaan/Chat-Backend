@@ -1,7 +1,6 @@
 ﻿using Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Services;
 using Services.DTOs;
 
@@ -28,16 +27,11 @@ namespace backend.Controllers
                 var users = await _userService.GetAllAsync();
                 return Ok(users);
             }
-            catch (DbUpdateException ex)
-            {
-                _logger.LogError($"DB Error: {ex.Message}");
-                return StatusCode(500, "Database error occurred while retrieving users");
-            }
             catch (Exception ex)
             {
-                return StatusCode(400, ex.Message);
+                _logger.LogError($"Error retrieving users: {ex.Message}");
+                return StatusCode(500, "Something went wrong on the server. Please try again later.");
             }
-
         }
 
         [HttpGet("verifieds")]
@@ -48,14 +42,10 @@ namespace backend.Controllers
                 var users = await _userService.GetVerifiedsAsync();
                 return Ok(users);
             }
-            catch (DbUpdateException ex)
-            {
-                _logger.LogError($"DB Error: {ex.Message}");
-                return StatusCode(500, "Database error occurred while retrieving users");
-            }
             catch (Exception ex)
             {
-                return StatusCode(400, ex.Message);
+                _logger.LogError($"Error retrieving verfied users: {ex.Message}");
+                return StatusCode(500, "Something went wrong on the server. Please try again later.");
             }
         }
 
@@ -73,14 +63,10 @@ namespace backend.Controllers
             {
                 return BadRequest(ex.Message);
             }
-            catch (DbUpdateException ex)
-            {
-                _logger.LogError($"DB Error: {ex.Message}");
-                return StatusCode(500, "Database error occured while retrieving user");
-            }
             catch (Exception ex)
             {
-                return StatusCode(500, ex.Message);
+                _logger.LogError($"Error retrieving user: {ex.Message}");
+                return StatusCode(500, "Something went wrong on the server. Please try again later.");
             }
         }
 
@@ -93,16 +79,17 @@ namespace backend.Controllers
                 await _userService.RegisterAsync(registerRequest);
                 return Ok();
             }
-            catch (DbUpdateException ex)
+            catch (UIException ex)
             {
-                _logger.LogError($"DB Error: {ex.Message}");
-                return StatusCode(500, "Database error occured while adding user");
+                return BadRequest(ex.Message);
             }
             catch (Exception ex)
             {
-                return StatusCode(400, ex.Message);
+                _logger.LogError($"Error adding user: {ex.Message}");
+                return StatusCode(500, "Something went wrong on the server. Please try again later.");
             }
         }
+
         [AllowAnonymous]
         [HttpGet("verify")]
         public async Task<IActionResult> VerifyAsync([FromQuery] string email, [FromQuery] string token)
@@ -112,15 +99,15 @@ namespace backend.Controllers
                 var isConfirmed = await _userService.VerifyAsync(email, token);
                 return Ok("Email verified successfully.");
             }
-            catch (DbUpdateException ex)
+            catch (UIException ex)
             {
-                _logger.LogError($"DB Error: {ex.Message}");
-                return StatusCode(500, ex.Message);
+                return BadRequest(ex.Message);
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
-            }          
+                _logger.LogError($"Error verifying user: {ex.Message}");
+                return StatusCode(500, "Something went wrong on the server. Please try again later.");
+            }
         }
 
         [HttpGet("{userId}/chats")]
@@ -131,15 +118,14 @@ namespace backend.Controllers
                 var chats = await _userService.GetChatsAsync(userId);
                 return Ok(chats);
             }
-            catch (DbUpdateException ex)
+            catch (UIException ex)
             {
-                _logger.LogError($"DB Error: {ex.Message}");
-                return StatusCode(500, "Database error occured while getting chats");
+                return BadRequest(ex.Message);
             }
             catch (Exception ex)
             {
-                _logger.LogError($"DB Error: {ex.Message}");
-                return StatusCode(400, ex.Message);
+                _logger.LogError($"Error retrieving user's chats: {ex.Message}");
+                return StatusCode(500, "Something went wrong on the server. Please try again later.");
             }
         }
 
@@ -156,14 +142,14 @@ namespace backend.Controllers
             {
                 return StatusCode(403, ex.Message);
             }
-            catch (DbUpdateException ex)
+            catch (UIException ex)
             {
-                _logger.LogError($"DB Error: {ex.Message}");
-                return StatusCode(500, "Database error occured");
+                return BadRequest(ex.Message);
             }
             catch (Exception ex)
             {
-                return StatusCode(400, ex.Message);
+                _logger.LogError($"Error logging in: {ex.Message}");
+                return StatusCode(500, "Something went wrong on the server. Please try again later.");
             }
         }
 
@@ -175,18 +161,14 @@ namespace backend.Controllers
                 var response = await _userService.DeleteAsync(id);
                 return Ok(response);
             }
-            catch (DbUpdateException ex)
-            {
-                _logger.LogError($"DB Error: {ex.Message}");
-                return StatusCode(500, "Database error occured");
-            }
             catch (KeyNotFoundException ex)
             {
                 return NotFound(ex.Message);
             }
             catch (Exception ex)
             {
-                return StatusCode(400, ex.Message);
+                _logger.LogError($"Error deleting user: {ex.Message}");
+                return StatusCode(500, "Something went wrong on the server. Please try again later.");
             }
         }
 
@@ -198,14 +180,14 @@ namespace backend.Controllers
                 var chats = await _userService.SearchChatsAsync(userId, searchTerm);
                 return Ok(chats);
             }
-            catch (DbUpdateException ex)
+            catch (UIException ex)
             {
-                _logger.LogError($"DB Error: {ex.Message}");
-                return StatusCode(500, "Database error occurred while searching chats");
+                return BadRequest(ex.Message);
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                _logger.LogError($"Error seaching user's chats: {ex.Message}");
+                return StatusCode(500, "Something went wrong on the server. Please try again later.");
             }
         }
 

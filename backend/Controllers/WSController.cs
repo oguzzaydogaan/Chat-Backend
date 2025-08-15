@@ -8,20 +8,22 @@ namespace backend.Controllers
     [Route("/ws/message")]
     public class WSController : ControllerBase
     {
-        public WSController(JwtService jwtService, WSClientListManager wsClientListManager)
+        private readonly JwtService _jwtService;
+        private readonly WSListManager _wsClientListManager;
+        private readonly ILogger<WSController> _logger;
+        public WSController(JwtService jwtService, WSListManager wsClientListManager, ILogger<WSController> logger)
         {
             _jwtService = jwtService;
             _wsClientListManager = wsClientListManager;
+            _logger = logger;
         }
-        private readonly JwtService _jwtService;
-        private readonly WSClientListManager _wsClientListManager;
 
         [HttpGet]
         public async Task Get()
         {
             if (HttpContext.WebSockets.IsWebSocketRequest)
             {
-                
+
                 try
                 {
                     string? token = HttpContext.Request.Query["accessToken"];
@@ -32,9 +34,20 @@ namespace backend.Controllers
 
                     await _wsClientListManager.AddClient(id, webSocket, validatedToken.ValidTo);
                 }
-                catch(SecurityTokenException ex)
+                catch (SecurityTokenArgumentException)
                 {
                     return;
+                }
+                catch (SecurityTokenValidationException)
+                {
+                    return;
+                }
+                catch (SecurityTokenException)
+                {
+                    return;
+                }
+                catch (Exception ex) {
+                    _logger.LogError(ex.Message);
                 }
             }
         }

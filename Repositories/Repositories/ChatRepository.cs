@@ -50,7 +50,7 @@ namespace Repositories.Repositories
                 .FirstOrDefaultAsync(c => c.Id == chatId);
 
             if (chat == null)
-                throw new Exception("Chat cannot found");
+                throw new ChatNotFoundException();
 
             chat.Messages = chat.Messages.OrderByDescending(m => m.Time).ToList();
 

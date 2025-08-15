@@ -2,6 +2,7 @@
 {
     public class Message : BaseEntity
     {
+        public string LocalId { get; set; } = string.Empty;
         public string Content { get; set; } = string.Empty;
         public DateTime Time { get; set; } = DateTime.UtcNow;
         public int ChatId { get; set; }

@@ -1,6 +1,6 @@
 ﻿namespace Exceptions
 {
-    public class UsersNotFoundException : Exception
+    public class UsersNotFoundException : UIException
     {
         public UsersNotFoundException()
             :base("User not found")

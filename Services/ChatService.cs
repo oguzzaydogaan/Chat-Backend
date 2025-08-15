@@ -26,13 +26,13 @@ namespace Services
         {
             if (chat == null || chat.UserIds.Count < 2)
             {
-                throw new Exception("At least two users are required to create a chat");
+                throw new UIException("At least two users are required to create a chat");
             }
 
             var users = await _userRepository.GetByListOfIdsAsync(chat.UserIds);
             if (users == null || users.Count != chat.UserIds.Count)
             {
-                throw new Exception("Some users not found");
+                throw new UIException("Some users not found");
             }
             if (users.Count == 2)
             {
@@ -49,7 +49,7 @@ namespace Services
             });
             if (entity.Name == string.Empty)
             {
-                throw new Exception("Chat needs a name");
+                throw new UIException("Chat needs a name");
             }
 
             var created = await _chatRepository.AddAsync(entity);
@@ -71,12 +71,12 @@ namespace Services
 
             if (!chat.Users.Any(u => u.Id == userId))
             {
-                throw new Exception("User is not member of chat");
+                throw new UserNotMemberOfChatException();
             }
 
             if (chat.Users.Count == 2)
             {
-                chat.Name = chat.Users.FirstOrDefault(u => u.Id != userId)?.Name ?? throw new Exception("Other user not found");
+                chat.Name = chat.Users.FirstOrDefault(u => u.Id != userId)?.Name ?? throw new UIException("Other user not found");
             }
 
             var dto = _mapper.Map<ChatWithMessagesAndUsersDTO>(chat);
@@ -94,7 +94,7 @@ namespace Services
             var chat = await _chatRepository.GetChatWithUsersAsync(chatId);
             if (chat.Users.Count == 2)
             {
-                throw new Exception("Cannot add user to personal chat");
+                throw new UIException("Cannot add user to personal chat");
             }
             if (chat.Users.Any(u => u.Id == userId))
             {

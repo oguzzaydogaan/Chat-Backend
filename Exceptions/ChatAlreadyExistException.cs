@@ -1,6 +1,6 @@
 ﻿namespace Exceptions
 {
-    public class ChatAlreadyExistException : Exception
+    public class ChatAlreadyExistException : UIException
     {
         public int RedirectChatId { get; set; }
         public ChatAlreadyExistException()
@@ -9,7 +9,7 @@
         }
 
         public ChatAlreadyExistException(int id)
-            : base("Chat already exist")
+            : base($"Chat already exist with ID {id}")
         {
             RedirectChatId = id;
         }

@@ -82,6 +82,10 @@ namespace Repositories.Migrations
                     b.Property<bool>("IsSystem")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("LocalId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<DateTime>("Time")
                         .HasColumnType("timestamp with time zone");
 

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using Exceptions;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Repositories.Context;
 using Repositories.Entities;
@@ -45,11 +46,10 @@ namespace Repositories.Repositories
                 .AsSplitQuery()
                 .FirstOrDefaultAsync(u => u.Id == userId);
             if (user == null)
-                throw new Exception("User not found");
+                throw new UsersNotFoundException();
             user.Chats = user.Chats.OrderByDescending(c => c.LastUpdate).ToList();
             return user;
         }
-
         public async Task<List<Chat>> SearchChatsAsync(int userId, string searchTerm)
         {
             if (string.IsNullOrWhiteSpace(searchTerm))
