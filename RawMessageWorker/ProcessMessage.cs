@@ -50,7 +50,7 @@ namespace RawMessageWorker
                     throw new ArgumentNullException("Message couldn't send");
                 }
                 ResponseSocketDTO socketMessage = new();
-                ICollection<User> recievers = [];
+                ICollection<int> recievers = [];
 
                 if (messageJson.Type == RequestEventType.Message_See)
                 {
@@ -79,16 +79,25 @@ namespace RawMessageWorker
                         throw new ArgumentNullException("Id cannot be null");
                     }
                     var chat = await _chatService.GetChatWithUsersAsync((int)messageJson.Payload.Id);
-                    recievers = chat.Users;
+                    recievers = chat.Users.Select(u => u.Id).ToList();
                 }
                 else if (messageJson.Type == RequestEventType.Message_Send)
-                {
-                    socketMessage.Type = ResponseEventType.Message_Sent;
+                {  
+                    
+                    var res = new ResponseSocket_ForMessageDTO
+                    {
+                        Message = messageJson.Payload.Message,
+                        Sender = messageJson.Sender
+                    };
+                    var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(res));
+                    var send = _wsManager.SendMessageToUsersAsync(body, messageJson.Recievers);
+                    socketMessage.Type = ResponseEventType.Message_Saved;
                     socketMessage.Sender = messageJson.Sender;
                     var message = await _messageService.AddAsync(_mapper.Map<Message>(messageJson.Payload.Message));
-                    recievers = message.Chat!.Users;
+                    recievers = message.Chat!.Users.Select(u=> u.Id).ToList();
                     socketMessage.Payload.Message = _mapper.Map<MessageWithSenderAndSeensDTO>(message);
                     socketMessage.Payload.Message.LocalId = messageJson.Payload.Message!.LocalId;
+                    await send;
                 }
                 else if (messageJson.Type == RequestEventType.Message_Delete)
                 {
@@ -101,7 +110,7 @@ namespace RawMessageWorker
                     socketMessage.Type = ResponseEventType.Message_Deleted;
                     socketMessage.Sender = messageJson.Sender;
                     var message = await _messageService.SoftDeleteAsync(mid, messageJson.Sender.Id);
-                    recievers = message.Chat!.Users;
+                    recievers = message.Chat!.Users.Select(u => u.Id).ToList();
                     socketMessage.Payload.Message = _mapper.Map<MessageWithSenderAndSeensDTO>(message);
                 }
                 else if (messageJson.Type == RequestEventType.Chat_Create)
@@ -109,7 +118,7 @@ namespace RawMessageWorker
                     socketMessage.Type = ResponseEventType.Chat_Created;
                     socketMessage.Sender = messageJson.Sender;
                     var chat = await _chatService.AddAsync(messageJson.Payload.Chat, socketMessage.Sender);
-                    recievers = chat.Users;
+                    recievers = chat.Users.Select(u => u.Id).ToList();
                     socketMessage.Payload.Chat = _mapper.Map<ChatWithUsersDTO>(chat);
                 }
                 else if (messageJson.Type == RequestEventType.Chat_AddUser)
@@ -121,7 +130,7 @@ namespace RawMessageWorker
                         throw new ArgumentNullException("Informations cannot be null");
                     }
                     var res = await _chatService.AddUserAsync(messageJson.Payload.Message.ChatId, messageJson.Payload.Message.UserId, messageJson.Sender);
-                    recievers = res.Item1.Users;
+                    recievers = res.Item1.Users.Select(u => u.Id).ToList();
                     socketMessage.Payload.Message = _mapper.Map<MessageWithSenderAndSeensDTO>(res.Item2);
                     socketMessage.Payload.Chat = _mapper.Map<ChatWithUsersDTO>(res.Item1);
                 }

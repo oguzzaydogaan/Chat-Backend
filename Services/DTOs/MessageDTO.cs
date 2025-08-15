@@ -18,6 +18,7 @@ namespace Services.DTOs
     {
         public string Content { get; set; } = string.Empty;
         public int UserId { get; set; }
+        public string UserName { get; set; } = string.Empty;
         public int ChatId { get; set; }
         public string ImageString { get; set; } = string.Empty;
         public DateTime Time { get; set; } = DateTime.UtcNow;

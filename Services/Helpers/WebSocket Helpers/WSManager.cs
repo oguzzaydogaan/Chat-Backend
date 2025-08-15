@@ -85,11 +85,11 @@ namespace Services.Helpers.WebSocket_Helpers
                 }
             }
         }
-        public async Task SendMessageToUsersAsync(byte[] bytes, ICollection<User> recievers)
+        public async Task SendMessageToUsersAsync(byte[] bytes, ICollection<int> recievers)
         {
             foreach (var reciever in recievers)
             {
-                _wsListManager.Clients.TryGetValue(reciever.Id, out var webSocket);
+                _wsListManager.Clients.TryGetValue(reciever, out var webSocket);
                 if (webSocket != null)
                 {
                     if (webSocket.State == WebSocketState.Open)
