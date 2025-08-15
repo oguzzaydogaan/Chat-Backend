@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 using Repositories.Entities;
 using Services;
 using Services.DTOs;
-using System.Net.WebSockets;
+using Services.Helpers.WebSocket_Helpers;
 using System.Text;
 using System.Text.Json;
 
@@ -15,18 +15,28 @@ namespace RawMessageWorker
         private readonly MessageService _messageService;
         private readonly MessageReadService _messageReadService;
         private readonly ChatService _chatService;
-        private readonly WSClientListManager _wSClientListManager;
+        private readonly WSListManager _wsListManager;
+        private readonly WSManager _wsManager;
         private readonly IMapper _mapper;
         private readonly ILogger<ProcessMessage> _logger;
 
-        public ProcessMessage(MessageService messageService, MessageReadService messageReadService, ChatService chatService, IMapper mapper, WSClientListManager wSClientListManager, ILogger<ProcessMessage> logger)
+        public ProcessMessage(
+            MessageService messageService,
+            MessageReadService messageReadService,
+            ChatService chatService,
+            IMapper mapper,
+            WSListManager wSClientListManager,
+            ILogger<ProcessMessage> logger,
+            WSManager wSManager
+        )
         {
             _messageService = messageService;
             _messageReadService = messageReadService;
             _chatService = chatService;
             _mapper = mapper;
             _logger = logger;
-            _wSClientListManager = wSClientListManager;
+            _wsListManager = wSClientListManager;
+            _wsManager = wSManager;
         }
 
         public async Task ProcessMessageAsync(string result)
@@ -122,67 +132,23 @@ namespace RawMessageWorker
 
                 var json = JsonSerializer.Serialize(socketMessage);
                 var bytes = Encoding.UTF8.GetBytes(json);
-                await SendMessageToClientsAsync(bytes, recievers);
+                await _wsManager.SendMessageToUsersAsync(bytes, recievers);
             }
             catch (ChatAlreadyExistException ex)
             {
-                await SendErrorToClientAsync(messageJson!.Sender.Id, ex.Message, ex.RedirectChatId);
+                var webSocket = _wsListManager.FindClient(messageJson!.Sender.Id);
+                await _wsManager.SendErrorAsync(webSocket, ex.Message, ex.RedirectChatId);
             }
-            catch(JsonException ex)
+            catch (UIException ex)
             {
-                _logger.LogError($"JSON error: {ex.Message}");
+                var webSocket = _wsListManager.FindClient(messageJson!.Sender.Id);
+                await _wsManager.SendErrorAsync(webSocket, ex.Message);
             }
             catch (Exception ex)
             {
-                await SendErrorToClientAsync(messageJson!.Sender.Id, ex.Message);
-            }
-
-        }
-
-        public async Task SendErrorToClientAsync(int uid, string ex, int id = -1)
-        {
-            ResponseSocketDTO message = new()
-            {
-                Type = ResponseEventType.Error,
-                Payload =
-                {
-                    Error = ex,
-                    Chat = new()
-                    {
-                        Id=id
-                    }
-                }
-            };
-
-            var json = JsonSerializer.Serialize(message);
-            var bytes = Encoding.UTF8.GetBytes(json);
-
-            var _client = _wSClientListManager.FindClient(uid);
-
-            await _client.SendAsync(
-                            new ArraySegment<byte>(bytes),
-                            WebSocketMessageType.Text,
-                            true,
-                            CancellationToken.None);
-        }
-
-
-        public async Task SendMessageToClientsAsync(byte[] bytes, ICollection<User> recievers)
-        {
-            foreach (var reciever in recievers)
-            {
-                _wSClientListManager.Clients.TryGetValue(reciever.Id, out var ws);
-                if (ws != null)
-                {
-                    if (ws._client.State == WebSocketState.Open)
-                    {
-                        await ws._client.SendAsync(
-                            new ArraySegment<byte>(bytes),
-                            WebSocketMessageType.Text,
-                            true,
-                            CancellationToken.None);
-                    }
-                }
+                _logger.LogError($"Error processing message: {ex.Message}");
+                var webSocket = _wsListManager.FindClient(messageJson!.Sender.Id);
+                await _wsManager.SendErrorAsync(webSocket, "Something went wrong.");
             }
         }
     }

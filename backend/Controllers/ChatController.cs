@@ -2,7 +2,6 @@
 using Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Services;
 using Services.DTOs;
 using System.Text.Json;
@@ -32,13 +31,10 @@ namespace backend.Controllers
                 var chats = await _chatService.GetAllAsync();
                 return Ok(chats);
             }
-            catch (DbUpdateException)
-            {
-                return StatusCode(500, "Database error occurred while retrieving chat");
-            }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                _logger.LogError($"Error retrieving chats: {ex.Message}");
+                return StatusCode(500, "Something went wrong on the server. Please try again later.");
             }
         }
 
@@ -56,17 +52,12 @@ namespace backend.Controllers
             {
                 return BadRequest(ex.Message);
             }
-            catch (DbUpdateException ex)
-            {
-                _logger.LogError($"DB Error: {ex.Message}");
-                return StatusCode(500, "Database error occurred while adding message");
-            }
             catch (Exception ex)
             {
-                return StatusCode(500, ex.Message);
+                _logger.LogError($"Error retrieving chats: {ex.Message}");
+                return StatusCode(500, "Something went wrong on the server. Please try again later.");
             }
         }
-
 
         [HttpGet("{chatId}/users/{userId}")]
         public async Task<IActionResult> GetChatWithMessagesAsync(int userId, int chatId)
@@ -78,20 +69,17 @@ namespace backend.Controllers
                 var chat = await _chatService.GetChatWithMessagesAsync(chatId, userId);
                 return Ok(JsonSerializer.Serialize(chat));
             }
-            catch (NotSupportedException)
-            {
-                return BadRequest("JSON serialization error");
-            }
-            catch (DbUpdateException ex)
-            {
-                _logger.LogError($"DB Error: {ex.Message}");
-                return StatusCode(500, "Database error occurred while retrieving chat");
-            }
-            catch (Exception ex)
+            catch (UIException ex)
             {
                 return BadRequest(ex.Message);
             }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error retrieving chat: {ex.Message}");
+                return StatusCode(500, "Something went wrong on the server. Please try again later.");
+            }
         }
+
         [HttpPost]
         public async Task<IActionResult> AddAsync([FromBody] CreateChatWithCreatorDTO dto)
         {
@@ -100,22 +88,19 @@ namespace backend.Controllers
                 var chat = await _chatService.AddAsync(dto.Chat, dto.Creator);
                 return Ok(_mapper.Map<CreateChatResponseDTO>(chat));
             }
-            catch (ChatAlreadyExistException ex)
-            {
-                return Conflict(ex.Message);
-            }
-            catch (DbUpdateException ex)
-            {
-                _logger.LogError($"DB Error: {ex.Message}");
-                return StatusCode(500, "Database error occurred while creating chat");
-            }
-            catch (Exception ex)
+            catch (UIException ex)
             {
                 return BadRequest(ex.Message);
             }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error adding chat: {ex.Message}");
+                return StatusCode(500, "Something went wrong on the server. Please try again later.");
+            }
         }
+
         [HttpPost("{chatId}/users/{userId}")]
-        public async Task<IActionResult> AddUserAsync(int chatId, int userId, UserDTO sender)
+        public async Task<IActionResult> AddUserAsync(int chatId, int userId, [FromBody] UserDTO sender)
         {
             if (chatId <= 0 || userId <= 0)
                 return BadRequest("Invalid chat ID or user ID");
@@ -124,26 +109,14 @@ namespace backend.Controllers
                 var updatedChat = await _chatService.AddUserAsync(chatId, userId, sender);
                 return Ok();
             }
-            catch (UsersNotFoundException ex)
+            catch (UIException ex)
             {
-                return NotFound(ex.Message);
-            }
-            catch (ChatNotFoundException ex)
-            {
-                return NotFound(ex.Message);
-            }
-            catch (UserAlreadyExistException ex)
-            {
-                return Conflict(ex.Message);
-            }
-            catch (DbUpdateException ex)
-            {
-                _logger.LogError($"DB Error: {ex.Message}");
-                return StatusCode(500, "Database error occurred while adding user to chat");
+                return BadRequest(ex.Message);
             }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                _logger.LogError($"Error adding user: {ex.Message}");
+                return StatusCode(500, "Something went wrong on the server. Please try again later.");
             }
         }
 
@@ -161,14 +134,10 @@ namespace backend.Controllers
             {
                 return NotFound(ex.Message);
             }
-            catch (DbUpdateException ex)
-            {
-                _logger.LogError($"DB Error: {ex.Message}");
-                return StatusCode(500, "Database error occurred while deleting chat");
-            }
             catch (Exception ex)
             {
-                return StatusCode(500, ex.Message);
+                _logger.LogError($"Error deleting chat: {ex.Message}");
+                return StatusCode(500, "Something went wrong on the server. Please try again later.");
             }
         }
 
@@ -180,14 +149,10 @@ namespace backend.Controllers
                 var users = await _chatService.SearchUsersAsync(chatId, searchTerm);
                 return Ok(JsonSerializer.Serialize(users));
             }
-            catch (DbUpdateException ex)
-            {
-                _logger.LogError($"DB Error: {ex.Message}");
-                return StatusCode(500, "Database error occurred while searching chats");
-            }
             catch (Exception ex)
             {
-                return BadRequest(ex.Message);
+                _logger.LogError($"Error searching chat's users: {ex.Message}");
+                return StatusCode(500, "Something went wrong on the server. Please try again later.");
             }
         }
     }

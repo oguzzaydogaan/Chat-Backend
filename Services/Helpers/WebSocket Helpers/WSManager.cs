@@ -1,43 +1,39 @@
 ﻿using Exceptions;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
+using Repositories.Entities;
 using Services.DTOs;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
 
-namespace Services
+namespace Services.Helpers.WebSocket_Helpers
 {
-    public class WSClient
+    public class WSManager
     {
-        public WebSocket _client;
-        private readonly IServiceScopeFactory _scopeFactory;
-
-        public WSClient(WebSocket client, IServiceScopeFactory scopeFactory)
+        private readonly IConfiguration _configuration;
+        private readonly WSListManager _wsListManager;
+        private readonly ILogger<WSManager> _logger;
+        public WSManager(IConfiguration configuration, WSListManager wSClientListManager, ILogger<WSManager> logger)
         {
-            _client = client;
-            _scopeFactory = scopeFactory;
+            _configuration = configuration;
+            _wsListManager = wSClientListManager;
+            _logger = logger;
         }
-        public async Task ListenClient(DateTime validTo)
+        public async Task ListenClientAsync(WebSocket webSocket, DateTime validTo)
         {
             var buffer = new byte[1024 * 256];
             WebSocketReceiveResult receiveResult;
-            ConnectionFactory factory;
 
-            using (var scope = _scopeFactory.CreateScope())
+            var factory = new ConnectionFactory
             {
-                var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
-                factory = new ConnectionFactory
-                {
-                    HostName = configuration["RabbitMQ:HostName"] ?? throw new ConfigurationException("MQ hostname is null."),
-                    Port = int.Parse(configuration["RabbitMQ:Port"] ?? throw new ConfigurationException("MQ port is null.")),
-                    UserName = configuration["RabbitMQ:UserName"] ?? throw new ConfigurationException("MQ username is null."),
-                    Password = configuration["RabbitMQ:Password"] ?? throw new ConfigurationException("MQ password is null.")
-                };
-            }
-            
+                HostName = _configuration["RabbitMQ:HostName"] ?? throw new ConfigurationException("MQ hostname is null."),
+                Port = int.Parse(_configuration["RabbitMQ:Port"] ?? throw new ConfigurationException("MQ port is null.")),
+                UserName = _configuration["RabbitMQ:UserName"] ?? throw new ConfigurationException("MQ username is null."),
+                Password = _configuration["RabbitMQ:Password"] ?? throw new ConfigurationException("MQ password is null.")
+            };
+
             using var connection = await factory.CreateConnectionAsync();
             using var channel = await connection.CreateChannelAsync();
 
@@ -49,7 +45,7 @@ namespace Services
                 using var ms = new MemoryStream();
                 do
                 {
-                    receiveResult = await _client.ReceiveAsync(
+                    receiveResult = await webSocket.ReceiveAsync(
                         new ArraySegment<byte>(buffer), CancellationToken.None);
 
                     ms.Write(buffer, 0, receiveResult.Count);
@@ -77,24 +73,37 @@ namespace Services
                     await channel.BasicPublishAsync(exchange: string.Empty, routingKey: "raw_messages", mandatory: true,
                     basicProperties: properties, body: body);
                 }
-                catch(JsonException ex)
+                catch (JsonException ex)
                 {
-                    using var scope = _scopeFactory.CreateScope();
-                    var logger = scope.ServiceProvider.GetRequiredService<ILogger<WSClient>>();
-                    logger.LogError($"Websocket json error: {ex.Message}");
-                    await SendErrorAsync("Bad message format.");
+                    _logger.LogError($"Websocket json error: {ex.Message}");
+                    await SendErrorAsync(webSocket,"Bad message format.");
                 }
                 catch (Exception ex)
                 {
-                    using var scope = _scopeFactory.CreateScope();
-                    var logger = scope.ServiceProvider.GetRequiredService<ILogger<WSClient>>();
-                    logger.LogError($"Websocket mesajı kuyruğa yazılırken hata: {ex.Message}");
-                    await SendErrorAsync("Something went wrong.");
+                    _logger.LogError($"Websocket mesajı kuyruğa yazılırken hata: {ex.Message}");
+                    await SendErrorAsync(webSocket, "Something went wrong.");
                 }
             }
         }
-
-        public async Task SendErrorAsync(string ex, int id = -1)
+        public async Task SendMessageToUsersAsync(byte[] bytes, ICollection<User> recievers)
+        {
+            foreach (var reciever in recievers)
+            {
+                _wsListManager.Clients.TryGetValue(reciever.Id, out var webSocket);
+                if (webSocket != null)
+                {
+                    if (webSocket.State == WebSocketState.Open)
+                    {
+                        await webSocket.SendAsync(
+                            new ArraySegment<byte>(bytes),
+                            WebSocketMessageType.Text,
+                            true,
+                            CancellationToken.None);
+                    }
+                }
+            }
+        }
+        public async Task SendErrorAsync(WebSocket webSocket, string ex, int id = -1)
         {
             ResponseSocketDTO message = new()
             {
@@ -112,17 +121,17 @@ namespace Services
             var json = JsonSerializer.Serialize(message);
             var bytes = Encoding.UTF8.GetBytes(json);
 
-            await _client.SendAsync(
+            await webSocket.SendAsync(
                             new ArraySegment<byte>(bytes),
                             WebSocketMessageType.Text,
                             true,
                             CancellationToken.None);
         }
-        public async Task CloseAsync(string reason)
+        public async Task CloseAsync(int id, WebSocket webSocket, string reason)
         {
-            if (_client.State == WebSocketState.Open)
+            if (webSocket.State == WebSocketState.Open)
             {
-                await _client.CloseAsync(
+                await webSocket.CloseAsync(
                     WebSocketCloseStatus.NormalClosure,
                     reason,
                     CancellationToken.None);

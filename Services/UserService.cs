@@ -36,13 +36,13 @@ namespace Services
             Regex regex = new Regex("^(?=.*[A-Za-z])(?=.*[0-9])(?=.*[^a-zA-Z0-9]).{6,}$");
             if (regex.IsMatch(registerRequest.Password!) == false)
             {
-                throw new Exception("Password must be at least 6 characters long and contain at least one letter, one number, and one special character");
+                throw new UIException("Password must be at least 6 characters long and contain at least one letter, one number, and one special character");
             }
             var user = _mapper.Map<User>(registerRequest);
             var isTaken = await _userRepository.GetByEmailAsync(user.Email);
             if (isTaken != null)
             {
-                throw new Exception("This email is already taken");
+                throw new UIException("This email is already taken");
             }
             user.Password = _passwordHasher.HashPassword(user, user.Password!);
             user.EmailVerificationToken = Guid.NewGuid().ToString();
@@ -55,7 +55,7 @@ namespace Services
             var user = await _userRepository.GetByEmailAndTokenAsync(email, token);
             if (user == null)
             {
-                throw new Exception("Invalid token or email");
+                throw new UIException("Invalid token or email");
             }
             if(user.IsEmailConfirmed == true)
             {
@@ -72,13 +72,13 @@ namespace Services
             var user = await _userRepository.GetByEmailAsync(email);
             if (user == null)
             {
-                throw new Exception("User not found");
+                throw new UsersNotFoundException();
             }
 
             var result = _passwordHasher.VerifyHashedPassword(user, user.Password!, password);
             if (result == PasswordVerificationResult.Failed)
             {
-                throw new Exception("Invalid password");
+                throw new UIException("Invalid password");
             }
 
             if (user.IsEmailConfirmed == false)
@@ -97,7 +97,7 @@ namespace Services
             var chats = user!.Chats.Select(c =>
             {
                 if (c.Users.Count == 2)
-                    c.Name = c.Users.FirstOrDefault(u => u.Id != userId)?.Name ?? throw new Exception("Other user not found");
+                    c.Name = c.Users.FirstOrDefault(u => u.Id != userId)?.Name ?? throw new UIException("Other user not found");
 
                 int count = !c.Messages[0].Seens.Any(s=>s.UserId == userId) ? -1 : c.Messages.Where(m => !m.Seens.Any(s => s.UserId == userId)).ToList().Count;
 
@@ -113,7 +113,7 @@ namespace Services
             {
                 if (c.Users.Count == 2)
                 {
-                    c.Name = c.Users.FirstOrDefault(u => u.Id != userId)?.Name ?? throw new Exception("Other user not found");
+                    c.Name = c.Users.FirstOrDefault(u => u.Id != userId)?.Name ?? throw new UIException("Other user not found");
                 }
 
                 return _mapper.Map<ChatDTO>(c);

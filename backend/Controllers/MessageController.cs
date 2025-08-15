@@ -2,10 +2,8 @@
 using Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Repositories.Entities;
 using Services;
-using Services.DTOs;
 
 namespace backend.Controllers
 {
@@ -24,7 +22,6 @@ namespace backend.Controllers
             _logger = logger;
         }
 
-
         [HttpGet]
         public async Task<IActionResult> GetAllAsync()
         {
@@ -33,14 +30,10 @@ namespace backend.Controllers
                 var messages = await _messageService.GetAllAsync();
                 return Ok(messages);
             }
-            catch (DbUpdateException ex)
-            {
-                _logger.LogError($"DB Error: {ex.Message}");
-                return StatusCode(500, "Database error occurred while adding message");
-            }
             catch (Exception ex)
             {
-                return StatusCode(500, ex.Message);
+                _logger.LogError($"Error retrieving messages: {ex.Message}");
+                return StatusCode(500, "Something went wrong on the server. Please try again later.");
             }
 
         }
@@ -59,14 +52,10 @@ namespace backend.Controllers
             {
                 return BadRequest(ex.Message);
             }
-            catch (DbUpdateException ex)
-            {
-                _logger.LogError($"DB Error: {ex.Message}");
-                return StatusCode(500, "Database error occurred while adding message");
-            }
             catch (Exception ex)
             {
-                return StatusCode(500, ex.Message);
+                _logger.LogError($"Error retrieving message: {ex.Message}");
+                return StatusCode(500, "Something went wrong on the server. Please try again later.");
             }
         }
 
@@ -81,24 +70,17 @@ namespace backend.Controllers
                 await _messageService.AddAsync(message);
                 return StatusCode(201);
             }
-            catch (ChatNotFoundException ex)
-            {
-                return NotFound(ex.Message);
-            }
-            catch (UserNotMemberOfChatException ex)
+            catch (UIException ex)
             {
                 return BadRequest(ex.Message);
             }
-            catch (DbUpdateException ex)
-            {
-                _logger.LogError($"DB Error: {ex.Message}");
-                return StatusCode(500, "Database error occurred while adding message");
-            }
             catch (Exception ex)
             {
-                return StatusCode(500, ex.Message);
+                _logger.LogError($"Error adding message: {ex.Message}");
+                return StatusCode(500, "Something went wrong on the server. Please try again later.");
             }
         }
+
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteAsync(int id)
         {
@@ -109,10 +91,14 @@ namespace backend.Controllers
                 await _messageService.DeleteAsync(id);
                 return NoContent();
             }
+            catch (KeyNotFoundException ex)
+            {
+                return BadRequest(ex.Message);
+            }
             catch (Exception ex)
             {
-                _logger.LogError($"DB Error: {ex.Message}");
-                return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+                _logger.LogError($"Error retrieving messages: {ex.Message}");
+                return StatusCode(500, "Something went wrong on the server. Please try again later.");
             }
         }
     }
