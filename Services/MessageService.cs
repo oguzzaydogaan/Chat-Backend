@@ -27,6 +27,7 @@ namespace Services
                 throw new UserNotMemberOfChatException();
             }
 
+            message.Time = DateTime.UtcNow;
             await _messageRepository.AddAsync(message);
 
             var messageRead = _mapper.Map<MessageRead>(message);
