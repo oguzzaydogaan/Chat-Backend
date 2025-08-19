@@ -34,19 +34,20 @@ namespace backend.Controllers
 
                     await _wsClientListManager.AddClient(id, webSocket, validatedToken.ValidTo);
                 }
-                catch (SecurityTokenArgumentException)
+                catch (SecurityTokenArgumentException ex)
                 {
-                    return;
+                    _logger.LogError($"Invalid token argument: {ex.Message}");
                 }
-                catch (SecurityTokenValidationException)
+                catch (SecurityTokenValidationException ex)
                 {
-                    return;
+                    _logger.LogError($"Token validation failed: {ex.Message}");
                 }
-                catch (SecurityTokenException)
+                catch (SecurityTokenException ex)
                 {
-                    return;
+                    _logger.LogError($"Token is invalid or expired: {ex.Message}");
                 }
-                catch (Exception ex) {
+                catch (Exception ex)
+                {
                     _logger.LogError(ex.Message);
                 }
             }
