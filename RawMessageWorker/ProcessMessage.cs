@@ -134,6 +134,34 @@ namespace RawMessageWorker
                     socketMessage.Payload.Message = _mapper.Map<MessageWithSenderAndSeensDTO>(res.Item2);
                     socketMessage.Payload.Chat = _mapper.Map<ChatWithUsersDTO>(res.Item1);
                 }
+                else if (messageJson.Type == RequestEventType.Call_Offer)
+                {
+                    socketMessage.Type = ResponseEventType.Call_Offered;
+                    socketMessage.Sender = messageJson.Sender;
+                    socketMessage.Payload.Call = messageJson.Payload.Call;
+                    recievers = [int.Parse(messageJson.Payload.Call!.TargetUserId)];
+                }
+                else if (messageJson.Type == RequestEventType.Call_Accept)
+                {
+                    socketMessage.Type = ResponseEventType.Call_Accepted;
+                    socketMessage.Sender = messageJson.Sender;
+                    socketMessage.Payload.Call = messageJson.Payload.Call;
+                    recievers = [int.Parse(messageJson.Payload.Call!.TargetUserId)];
+                }
+                else if (messageJson.Type == RequestEventType.Call_Reject)
+                {
+                    socketMessage.Type = ResponseEventType.Call_Rejected;
+                    socketMessage.Sender = messageJson.Sender;
+                    socketMessage.Payload.Call = messageJson.Payload.Call;
+                    recievers = [int.Parse(messageJson.Payload.Call!.TargetUserId)];
+                }
+                else if (messageJson.Type == RequestEventType.Call_Ice)
+                {
+                    socketMessage.Type = ResponseEventType.Call_Ice;
+                    socketMessage.Sender = messageJson.Sender;
+                    socketMessage.Payload.Call = messageJson.Payload.Call;
+                    recievers = [int.Parse(messageJson.Payload.Call!.TargetUserId)];
+                }
                 else
                 {
                     throw new Exception("Bad message type");

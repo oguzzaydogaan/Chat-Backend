@@ -24,11 +24,15 @@
 
     public enum RequestEventType
     {
-        Message_Send = 0,
-        Message_Delete = 1,
-        Message_See = 2,
-        Chat_Create = 3,
-        Chat_AddUser = 4
+        Message_Send,
+        Message_Delete,
+        Message_See,
+        Chat_Create,
+        Chat_AddUser,
+        Call_Offer,
+        Call_Accept,
+        Call_Reject,
+        Call_Ice,
     }
     public enum ResponseEventType
     {
@@ -38,6 +42,10 @@
         Message_Seen,
         Chat_Created,
         Chat_UserAdded,
+        Call_Offered,
+        Call_Accepted,
+        Call_Rejected,
+        Call_Ice,
         Error
     }
 }
