@@ -83,7 +83,7 @@ namespace RawMessageWorker
                 }
                 else if (messageJson.Type == RequestEventType.Message_Send)
                 {  
-                    
+                    messageJson.Payload.Message!.Time = DateTime.UtcNow;
                     var res = new ResponseSocket_ForMessageDTO
                     {
                         Message = messageJson.Payload.Message,
