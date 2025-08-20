@@ -2,19 +2,18 @@
 using Microsoft.IdentityModel.Tokens;
 using Services;
 using System.IdentityModel.Tokens.Jwt;
+using System.Net.WebSockets;
 
 namespace backend.Controllers
 {
-    [Route("/ws/message")]
-    public class WSController : ControllerBase
+    [Route("/call")]
+    public class CallController : ControllerBase
     {
         private readonly JwtService _jwtService;
-        private readonly WSListManager _wsListManager;
-        private readonly ILogger<WSController> _logger;
-        public WSController(JwtService jwtService, WSListManager wsListManager, ILogger<WSController> logger)
+        private readonly ILogger<CallController> _logger;
+        public CallController(JwtService jwtService, ILogger<CallController> logger)
         {
             _jwtService = jwtService;
-            _wsListManager = wsListManager;
             _logger = logger;
         }
 
@@ -29,10 +28,26 @@ namespace backend.Controllers
                     string? token = HttpContext.Request.Query["accessToken"];
                     var validatedToken = _jwtService.Validate(token) as JwtSecurityToken;
                     int id = int.Parse(validatedToken!.Claims.FirstOrDefault(c => c.Type == "UserId")!.Value);
+                    int toId = int.Parse(HttpContext.Request.Query["toId"]);
 
                     var webSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
 
-                    await _wsListManager.AddClient(id, webSocket, validatedToken.ValidTo);
+                    var buffer = new byte[1024 * 4];
+                    await using var fs = new FileStream("recorded_audio.webm", FileMode.Create, FileAccess.Write);
+                    WebSocketReceiveResult receiveResult;
+                    while (true)
+                    {
+
+                        receiveResult = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
+                        await fs.WriteAsync(buffer, 0, receiveResult.Count);
+
+                        if (receiveResult.CloseStatus.HasValue)
+                        {
+                            break;
+                        }
+                    }
+
+                    await webSocket.CloseAsync(receiveResult.CloseStatus.Value, receiveResult.CloseStatusDescription, CancellationToken.None);
                 }
                 catch (SecurityTokenArgumentException ex)
                 {

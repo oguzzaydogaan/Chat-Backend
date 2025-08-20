@@ -103,6 +103,21 @@ namespace Services.Helpers.WebSocket_Helpers
                 }
             }
         }
+        public async Task SendMessageToUserAsync(byte[] bytes, int id)
+        {
+            _wsListManager.Clients.TryGetValue(id, out var webSocket);
+            if (webSocket != null)
+            {
+                if (webSocket.State == WebSocketState.Open)
+                {
+                    await webSocket.SendAsync(
+                        new ArraySegment<byte>(bytes),
+                        WebSocketMessageType.Text,
+                        true,
+                        CancellationToken.None);
+                }
+            }
+        }
         public async Task SendErrorAsync(WebSocket webSocket, string ex, int id = -1)
         {
             ResponseSocketDTO message = new()
