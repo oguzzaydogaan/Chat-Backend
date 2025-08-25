@@ -9,7 +9,7 @@ namespace Services.DTOs
         public int? Id { get; set; }
         public ICollection<int>? Ids { get; set; }
         public CreateChatRequestDTO? Chat { get; set; }
-        public CallDTO? Call { get; set; }
+        public CallOfferDTO? Call { get; set; }
     }
 
     public class ResponsePayloadDTO
@@ -17,7 +17,7 @@ namespace Services.DTOs
         public MessageWithSenderAndSeensDTO? Message { get; set; }
         public ChatWithUsersDTO? Chat { get; set; }
         public ICollection<MessageRead>? MessageReads { get; set; }
-        public CallDTO? Call { get; set; }
+        public CallOfferDTO? Call { get; set; }
         public string? Error { get; set; }      
     }
 }

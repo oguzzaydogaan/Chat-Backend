@@ -30,8 +30,10 @@
         Chat_Create,
         Chat_AddUser,
         Call_Offer,
+        Call_Cancel,
         Call_Accept,
         Call_Reject,
+        Call_End,
         Call_Ice,
     }
     public enum ResponseEventType
@@ -43,8 +45,10 @@
         Chat_Created,
         Chat_UserAdded,
         Call_Offered,
+        Call_Cancelled,
         Call_Accepted,
         Call_Rejected,
+        Call_Ended,
         Call_Ice,
         Error
     }
