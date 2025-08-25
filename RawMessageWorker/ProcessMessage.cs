@@ -15,6 +15,7 @@ namespace RawMessageWorker
         private readonly MessageService _messageService;
         private readonly MessageReadService _messageReadService;
         private readonly ChatService _chatService;
+        private readonly CallService _callService;
         private readonly WSListManager _wsListManager;
         private readonly WSManager _wsManager;
         private readonly IMapper _mapper;
@@ -24,6 +25,7 @@ namespace RawMessageWorker
             MessageService messageService,
             MessageReadService messageReadService,
             ChatService chatService,
+            CallService callService,
             IMapper mapper,
             WSListManager wSClientListManager,
             ILogger<ProcessMessage> logger,
@@ -33,6 +35,7 @@ namespace RawMessageWorker
             _messageService = messageService;
             _messageReadService = messageReadService;
             _chatService = chatService;
+            _callService = callService;
             _mapper = mapper;
             _logger = logger;
             _wsListManager = wSClientListManager;
@@ -82,7 +85,7 @@ namespace RawMessageWorker
                     recievers = chat.Users.Select(u => u.Id).ToList();
                 }
                 else if (messageJson.Type == RequestEventType.Message_Send)
-                {  
+                {
                     messageJson.Payload.Message!.Time = DateTime.UtcNow;
                     var res = new ResponseSocket_ForMessageDTO
                     {
@@ -94,7 +97,7 @@ namespace RawMessageWorker
                     socketMessage.Type = ResponseEventType.Message_Saved;
                     socketMessage.Sender = messageJson.Sender;
                     var message = await _messageService.AddAsync(_mapper.Map<Message>(messageJson.Payload.Message));
-                    recievers = message.Chat!.Users.Select(u=> u.Id).ToList();
+                    recievers = message.Chat!.Users.Select(u => u.Id).ToList();
                     socketMessage.Payload.Message = _mapper.Map<MessageWithSenderAndSeensDTO>(message);
                     socketMessage.Payload.Message.LocalId = messageJson.Payload.Message!.LocalId;
                     await send;
@@ -139,28 +142,61 @@ namespace RawMessageWorker
                     socketMessage.Type = ResponseEventType.Call_Offered;
                     socketMessage.Sender = messageJson.Sender;
                     socketMessage.Payload.Call = messageJson.Payload.Call;
-                    recievers = [int.Parse(messageJson.Payload.Call!.TargetUserId)];
+                    recievers = messageJson.Recievers;
+                    var call = await _callService.AddAsync(new CreateCallDTO { CallerId = messageJson.Sender.Id, CalleeId = recievers.ToList()[0] });
+                    socketMessage.Payload.Call!.CallId = call.Id;
+                }
+                else if (messageJson.Type == RequestEventType.Call_Cancel)
+                {
+                    socketMessage.Type = ResponseEventType.Call_Cancelled;
+                    socketMessage.Sender = messageJson.Sender;
+                    recievers = messageJson.Recievers;
+                    if (messageJson.Payload.Call == null || messageJson.Payload.Call.CallId == null)
+                    {
+                        throw new UIException("Informations can not be null.");
+                    }
+                    await _callService.CancelCallAsync((int)messageJson.Payload.Call.CallId);
                 }
                 else if (messageJson.Type == RequestEventType.Call_Accept)
                 {
                     socketMessage.Type = ResponseEventType.Call_Accepted;
                     socketMessage.Sender = messageJson.Sender;
                     socketMessage.Payload.Call = messageJson.Payload.Call;
-                    recievers = [int.Parse(messageJson.Payload.Call!.TargetUserId)];
+                    recievers = messageJson.Recievers;
+                    if (messageJson.Payload.Call == null || messageJson.Payload.Call.CallId == null)
+                    {
+                        throw new UIException("Informations can not be null.");
+                    }
+                    await _callService.AcceptCallAsync((int)messageJson.Payload.Call.CallId);
                 }
                 else if (messageJson.Type == RequestEventType.Call_Reject)
                 {
                     socketMessage.Type = ResponseEventType.Call_Rejected;
                     socketMessage.Sender = messageJson.Sender;
-                    socketMessage.Payload.Call = messageJson.Payload.Call;
-                    recievers = [int.Parse(messageJson.Payload.Call!.TargetUserId)];
+                    recievers = messageJson.Recievers;
+                    if (messageJson.Payload.Call == null || messageJson.Payload.Call.CallId == null)
+                    {
+                        throw new UIException("Informations can not be null.");
+                    }
+                    await _callService.RejectCallAsync((int)messageJson.Payload.Call.CallId);
+                }
+                else if (messageJson.Type == RequestEventType.Call_End)
+                {
+                    socketMessage.Type = ResponseEventType.Call_Ended;
+                    socketMessage.Sender = messageJson.Sender;
+                    recievers = messageJson.Recievers;
+                    if (messageJson.Payload.Call == null || messageJson.Payload.Call.CallId == null)
+                    {
+                        throw new UIException("Informations can not be null.");
+                    }
+                    await _callService.EndCallAsync((int)messageJson.Payload.Call.CallId);
                 }
                 else if (messageJson.Type == RequestEventType.Call_Ice)
                 {
                     socketMessage.Type = ResponseEventType.Call_Ice;
                     socketMessage.Sender = messageJson.Sender;
                     socketMessage.Payload.Call = messageJson.Payload.Call;
-                    recievers = [int.Parse(messageJson.Payload.Call!.TargetUserId)];
+                    recievers = messageJson.Recievers;
                 }
                 else
                 {

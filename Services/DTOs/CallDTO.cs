@@ -1,18 +1,27 @@
-﻿namespace Services.DTOs
+﻿using Repositories.Entities;
+
+namespace Services.DTOs
 {
     public class CallDTO
     {
-        public string Type { get; set; } = string.Empty;          // "offer", "answer", "candidate"
-        public string TargetUserId { get; set; } = string.Empty;  // karşı taraf
-        public string SourceUserId { get; set; } = string.Empty;  // gönderen taraf
+        public int Id { get; set; }
+        public UserDTO Caller { get; set; } = new();
+        public UserDTO Callee { get; set; } = new();
+    }
 
-        // SDP için
+    public class CreateCallDTO
+    {
+        public int CallerId { get; set; }
+        public int CalleeId { get; set; }
+    }
+
+    public class CallOfferDTO
+    {
+        public string Type { get; set; } = string.Empty;
         public string? Sdp { get; set; }
-
-        // ICE için
         public string? Candidate { get; set; }
         public string? SdpMid { get; set; }
         public int? SdpMLineIndex { get; set; }
+        public int? CallId { get; set; }
     }
-
 }
