@@ -1,71 +1,34 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Services;
-using System.IdentityModel.Tokens.Jwt;
-using System.Net.WebSockets;
 
 namespace backend.Controllers
 {
-    [Route("/call")]
+    [Route("/calls")]
+    [Authorize]
     public class CallController : ControllerBase
     {
-        private readonly JwtService _jwtService;
+        private readonly CallService _callService;
         private readonly ILogger<CallController> _logger;
-        public CallController(JwtService jwtService, ILogger<CallController> logger)
+        public CallController(ILogger<CallController> logger, CallService callService)
         {
-            _jwtService = jwtService;
             _logger = logger;
+            _callService = callService;
         }
 
         [HttpGet]
-        public async Task Get()
-        {
-            if (HttpContext.WebSockets.IsWebSocketRequest)
+        public async Task<IActionResult> GetAllAsync() {
+            try
             {
-
-                try
-                {
-                    string? token = HttpContext.Request.Query["accessToken"];
-                    var validatedToken = _jwtService.Validate(token) as JwtSecurityToken;
-                    int id = int.Parse(validatedToken!.Claims.FirstOrDefault(c => c.Type == "UserId")!.Value);
-                    int toId = int.Parse(HttpContext.Request.Query["toId"]);
-
-                    var webSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
-
-                    var buffer = new byte[1024 * 4];
-                    await using var fs = new FileStream("recorded_audio.webm", FileMode.Create, FileAccess.Write);
-                    WebSocketReceiveResult receiveResult;
-                    while (true)
-                    {
-
-                        receiveResult = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
-                        await fs.WriteAsync(buffer, 0, receiveResult.Count);
-
-                        if (receiveResult.CloseStatus.HasValue)
-                        {
-                            break;
-                        }
-                    }
-
-                    await webSocket.CloseAsync(receiveResult.CloseStatus.Value, receiveResult.CloseStatusDescription, CancellationToken.None);
-                }
-                catch (SecurityTokenArgumentException ex)
-                {
-                    _logger.LogError($"Invalid token argument: {ex.Message}");
-                }
-                catch (SecurityTokenValidationException ex)
-                {
-                    _logger.LogError($"Token validation failed: {ex.Message}");
-                }
-                catch (SecurityTokenException ex)
-                {
-                    _logger.LogError($"Token is invalid or expired: {ex.Message}");
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex.Message);
-                }
+                var calls = await _callService.GetAllAsync();
+                return Ok(calls);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error retrieving users: {ex.Message}");
+                return StatusCode(500, "Something went wrong on the server. Please try again later.");
             }
         }
+
     }
 }

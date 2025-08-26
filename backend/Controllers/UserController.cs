@@ -129,6 +129,21 @@ namespace backend.Controllers
             }
         }
 
+        [HttpGet("{userId}/calls")]
+        public async Task<IActionResult> GetCallsAsync(int userId)
+        {
+            try
+            {
+                var calls = await _userService.GetNotActiveCallsAsync(userId);
+                return Ok(calls);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error retrieving user's chats: {ex.Message}");
+                return StatusCode(500, "Something went wrong on the server. Please try again later.");
+            }
+        }
+
         [AllowAnonymous]
         [HttpPost("login")]
         public async Task<IActionResult> LoginAsync([FromBody] LoginRequestDTO loginRequest)

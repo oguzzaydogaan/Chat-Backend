@@ -12,14 +12,16 @@ namespace Services
     public class UserService : BaseService<User, UserDTO>
     {
         private readonly UserRepository _userRepository;
+        private readonly CallRepository _callRepository;
         private readonly PasswordHasher<User> _passwordHasher;
         private readonly JwtService _jwtService;
         private readonly MailSender _mailSender;
 
-        public UserService(UserRepository userRepository, PasswordHasher<User> passwordHasher, JwtService jwtService, IMapper mapper, MailSender mailSender)
+        public UserService(UserRepository userRepository, CallRepository callRepository, PasswordHasher<User> passwordHasher, JwtService jwtService, IMapper mapper, MailSender mailSender)
         : base(mapper, userRepository)
         {
             _userRepository = userRepository;
+            _callRepository = callRepository;
             _passwordHasher = passwordHasher;
             _jwtService = jwtService;
             _mailSender = mailSender;
@@ -28,7 +30,7 @@ namespace Services
         public async Task<List<UserDTO>> GetVerifiedsAsync()
         {
             var users = await _userRepository.GetVerifiedsAsync();
-            var dtos = users.Select(u=>_mapper.Map<UserDTO>(u)).ToList();
+            var dtos = users.Select(u => _mapper.Map<UserDTO>(u)).ToList();
             return dtos;
         }
         public async Task RegisterAsync(RegisterRequestDTO registerRequest)
@@ -57,7 +59,7 @@ namespace Services
             {
                 throw new UIException("Invalid token or email");
             }
-            if(user.IsEmailConfirmed == true)
+            if (user.IsEmailConfirmed == true)
             {
                 return false;
             }
@@ -99,7 +101,7 @@ namespace Services
                 if (c.Users.Count == 2)
                     c.Name = c.Users.FirstOrDefault(u => u.Id != userId)?.Name ?? throw new UIException("Other user not found");
 
-                int count = !c.Messages[0].Seens.Any(s=>s.UserId == userId) ? -1 : c.Messages.Where(m => !m.Seens.Any(s => s.UserId == userId)).ToList().Count;
+                int count = !c.Messages[0].Seens.Any(s => s.UserId == userId) ? -1 : c.Messages.Where(m => !m.Seens.Any(s => s.UserId == userId)).ToList().Count;
 
                 return _mapper.Map<ChatWithUnseenCountDTO>(c, opt => opt.Items["Count"] = count);
             }).ToList();
@@ -118,6 +120,13 @@ namespace Services
 
                 return _mapper.Map<ChatDTO>(c);
             }).ToList();
+            return dtos;
+        }
+
+        public async Task<List<CallDTO>> GetNotActiveCallsAsync(int userId)
+        {
+            var calls = await _callRepository.GetNotActivesByUserIdAsync(userId);
+            var dtos = calls.Select(call => _mapper.Map<CallDTO>(call)).ToList();
             return dtos;
         }
     }

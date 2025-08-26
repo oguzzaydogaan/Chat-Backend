@@ -16,5 +16,10 @@ namespace Repositories.Repositories
         {
             return await DbSet.FirstOrDefaultAsync(c => (c.CallerId == userId || c.CalleeId == userId) && (c.AnswerType == CallAnswerType.None || (c.AnswerType == CallAnswerType.Accepted && c.EndTime == DateTime.MinValue)));
         }
+
+        public async Task<List<Call>> GetNotActivesByUserIdAsync(int userId)
+        {
+            return await DbSet.Include(c=>c.Caller).Include(c => c.Callee).Where(c=>(c.CallerId==userId || c.CalleeId==userId) && !(c.AnswerType == CallAnswerType.None || (c.AnswerType == CallAnswerType.Accepted && c.EndTime == DateTime.MinValue))).OrderByDescending(c=>c.CallTime).ToListAsync();
+        }
     }
 }
