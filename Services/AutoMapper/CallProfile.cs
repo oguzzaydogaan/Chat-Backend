@@ -10,6 +10,7 @@ namespace Services.AutoMapper
         {
             CreateMap<Call, CreateCallDTO>();
             CreateMap<CreateCallDTO, Call>();
+            CreateMap<Call, CallDTO>();
         }
     }
 }
