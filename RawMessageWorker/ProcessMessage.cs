@@ -145,6 +145,8 @@ namespace RawMessageWorker
                     recievers = messageJson.Recievers;
                     var call = await _callService.AddAsync(new CreateCallDTO { CallerId = messageJson.Sender.Id, CalleeId = recievers.ToList()[0] });
                     socketMessage.Payload.Call!.CallId = call.Id;
+                    socketMessage.Payload.Call!.CallerId = call.CallerId;
+                    socketMessage.Payload.Call!.CallTime = call.CallTime;
                 }
                 else if (messageJson.Type == RequestEventType.Call_Cancel)
                 {
