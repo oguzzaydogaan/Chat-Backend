@@ -9,11 +9,13 @@ namespace Services.AutoMapper
         public ChatProfile()
         {
             CreateMap<Chat, ChatDTO>();
-            CreateMap<Chat, ChatWithUnseenCountDTO>()
+            CreateMap<Chat, ChatWithUnseenCountAndUserCountDTO>()
                 .AfterMap((src, dest, context) =>
                 {
                     var count = (int)context.Items["Count"];
+                    var userCount = (int)context.Items["UserCount"];
                     dest.Count = count;
+                    dest.UserCount = userCount;
                 });
             CreateMap<Chat, ChatWithMessagesAndUsersDTO>();
             CreateMap<CreateChatRequestDTO, Chat>()

@@ -28,5 +28,7 @@ namespace Services.DTOs
         public string? SdpMid { get; set; }
         public int? SdpMLineIndex { get; set; }
         public int? CallId { get; set; }
+        public int? CallerId { get; set; }
+        public DateTime CallTime { get; set; }
     }
 }
