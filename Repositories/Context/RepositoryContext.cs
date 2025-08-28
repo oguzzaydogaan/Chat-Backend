@@ -12,5 +12,6 @@ namespace Repositories.Context
         public DbSet<Chat> Chats { get; set; }
         public DbSet<Message> Messages { get; set; }
         public DbSet<MessageRead> MessageReads { get; set; }
+        public DbSet<Call> Calls { get; set; }
     }
 }

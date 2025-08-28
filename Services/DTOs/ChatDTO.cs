@@ -5,11 +5,12 @@
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
     }
-    public class ChatWithUnseenCountDTO
+    public class ChatWithUnseenCountAndUserCountDTO
     {
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
         public int Count { get; set; }
+        public int UserCount { get; set; }
     }
     public class CreateChatRequestDTO
     {

@@ -31,7 +31,7 @@ namespace Services
             }
             try
             {
-                await _wsManager.ListenClientAsync(webSocket, validTo);
+                await _wsManager.ListenClientAsync(id, webSocket, validTo);
                 await RemoveClient(id, "Connection timed out. Please reconnect", webSocket);
             }
             catch (TokenExpiredException ex)

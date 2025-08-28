@@ -86,7 +86,7 @@ namespace backend.Controllers
             try
             {
                 var chat = await _chatService.AddAsync(dto.Chat, dto.Creator);
-                return Ok(_mapper.Map<CreateChatResponseDTO>(chat));
+                return Ok();
             }
             catch (UIException ex)
             {

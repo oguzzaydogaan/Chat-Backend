@@ -2,7 +2,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
-using Repositories.Entities;
 using Services.DTOs;
 using System.Net.WebSockets;
 using System.Text;
@@ -15,13 +14,16 @@ namespace Services.Helpers.WebSocket_Helpers
         private readonly IConfiguration _configuration;
         private readonly WSListManager _wsListManager;
         private readonly ILogger<WSManager> _logger;
-        public WSManager(IConfiguration configuration, WSListManager wSClientListManager, ILogger<WSManager> logger)
+        private readonly CallService _callService;
+
+        public WSManager(IConfiguration configuration, WSListManager wSClientListManager, ILogger<WSManager> logger, CallService callService)
         {
             _configuration = configuration;
             _wsListManager = wSClientListManager;
             _logger = logger;
+            _callService = callService;
         }
-        public async Task ListenClientAsync(WebSocket webSocket, DateTime validTo)
+        public async Task ListenClientAsync(int userId, WebSocket webSocket, DateTime validTo)
         {
             var buffer = new byte[1024 * 256];
             WebSocketReceiveResult receiveResult;
@@ -53,6 +55,13 @@ namespace Services.Helpers.WebSocket_Helpers
                 } while (!receiveResult.EndOfMessage);
                 if (receiveResult.CloseStatus.HasValue)
                 {
+                    var res = await _callService.CheckAndCloseActiveCallAsync(userId);
+                    if (res != null)
+                    {
+                        var json = JsonSerializer.Serialize(res.Value.Item1);
+                        var bytes = Encoding.UTF8.GetBytes(json);
+                        await SendMessageToUsersAsync(bytes, res.Value.Item2);
+                    }
                     break;
                 }
                 if (validTo < DateTime.UtcNow)

@@ -9,12 +9,12 @@ namespace backend.Controllers
     public class WSController : ControllerBase
     {
         private readonly JwtService _jwtService;
-        private readonly WSListManager _wsClientListManager;
+        private readonly WSListManager _wsListManager;
         private readonly ILogger<WSController> _logger;
-        public WSController(JwtService jwtService, WSListManager wsClientListManager, ILogger<WSController> logger)
+        public WSController(JwtService jwtService, WSListManager wsListManager, ILogger<WSController> logger)
         {
             _jwtService = jwtService;
-            _wsClientListManager = wsClientListManager;
+            _wsListManager = wsListManager;
             _logger = logger;
         }
 
@@ -32,7 +32,7 @@ namespace backend.Controllers
 
                     var webSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
 
-                    await _wsClientListManager.AddClient(id, webSocket, validatedToken.ValidTo);
+                    await _wsListManager.AddClient(id, webSocket, validatedToken.ValidTo);
                 }
                 catch (SecurityTokenArgumentException ex)
                 {
