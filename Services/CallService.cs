@@ -18,12 +18,13 @@ namespace Services
             _userRepository = userRepository;
         }
 
-        public async Task<Call> AddAsync(CreateCallDTO dto)
+        public async Task<Call> AddAsync(CreateCallReqDTO dto)
         {
-            _ = await _userRepository.GetByIdAsync(dto.CallerId) ?? throw new UsersNotFoundException();
-            _ = await _userRepository.GetByIdAsync(dto.CalleeId) ?? throw new UsersNotFoundException();
-
-            return await _callRepository.AddAsync(_mapper.Map<Call>(dto));
+            var users = await _userRepository.GetByListOfIdsAsync(dto.CalleesIds);
+            var call = _mapper.Map<Call>(dto, opt => opt.Items["Users"] = users);
+            call.Caller = await _userRepository.GetByIdAsync(call.CallerId);
+            await _callRepository.AddAsync(call);
+            return call;
         }
 
         public async Task CancelCallAsync(int id)
@@ -65,14 +66,14 @@ namespace Services
                 {
                     Payload = new ResponsePayloadDTO
                     {
-                        Call = new CallOfferDTO
+                        Call = new CallDTO
                         {
-                            CallId = call.Id
+                            Id = call.Id
                         }
                     },
                     Sender = new UserDTO { Id = userId }
                 };
-                ICollection<int> recievers = call.CallerId == userId ? [call.CalleeId] : [call.CallerId];
+                ICollection<int> recievers = call.CallerId == userId ? call.Callees.Select(u => u.Id).ToList() : [call.CallerId];
                 if (call.AnswerType == CallAnswerType.None)
                 {
                     if (call.CallerId == userId)

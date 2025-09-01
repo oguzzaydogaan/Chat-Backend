@@ -9,5 +9,7 @@
         public bool IsEmailConfirmed { get; set; } = false;
         public ICollection<Chat> Chats { get; set; } = new List<Chat>();
         public ICollection<Message> Messages { get; set; } = new List<Message>();
+        public ICollection<Call> CallsMade { get; set; } = new List<Call>();
+        public ICollection<Call> CallsReceived { get; set; } = new List<Call>();
     }
 }

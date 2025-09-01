@@ -8,9 +8,17 @@ namespace Services.AutoMapper
     {
         public CallProfile()
         {
-            CreateMap<Call, CreateCallDTO>();
-            CreateMap<CreateCallDTO, Call>();
-            CreateMap<Call, CallDTO>();
+            CreateMap<Call, CreateCallReqDTO>();
+            CreateMap<CreateCallReqDTO, Call>().AfterMap((src, dest, context) =>
+            {
+                var users = (List<User>)context.Items["Users"];
+                dest.Callees = users;
+            });
+            CreateMap<Call, CallDTO>().AfterMap((src, dest, context) =>
+            {
+                var token = context.Items["SFUToken"].ToString();
+                dest.SFUToken = token;
+            });
         }
     }
 }

@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Repositories.Entities;
 using Services;
 using Services.DTOs;
+using Services.Helpers.LiveKit;
 using Services.Helpers.WebSocket_Helpers;
 using System.Text;
 using System.Text.Json;
@@ -141,64 +142,48 @@ namespace RawMessageWorker
                 {
                     socketMessage.Type = ResponseEventType.Call_Offered;
                     socketMessage.Sender = messageJson.Sender;
-                    socketMessage.Payload.Call = messageJson.Payload.Call;
                     recievers = messageJson.Recievers;
-                    var call = await _callService.AddAsync(new CreateCallDTO { CallerId = messageJson.Sender.Id, CalleeId = recievers.ToList()[0] });
-                    socketMessage.Payload.Call!.CallId = call.Id;
-                    socketMessage.Payload.Call!.CallerId = call.CallerId;
-                    socketMessage.Payload.Call!.CallTime = call.CallTime;
+                    recievers.Add(messageJson.Sender.Id);
+
+
+                    var call = await _callService.AddAsync(messageJson.Payload.CreateCall);
+
+                    var sfuToken = LiveKitHelper.GenerateToken(call.Id.ToString(), messageJson.Sender.Id.ToString(), messageJson.Sender.Name);
+
+                    socketMessage.Payload.Call = _mapper.Map<CallDTO>(call, opt => opt.Items["SFUToken"] = sfuToken);
                 }
-                else if (messageJson.Type == RequestEventType.Call_Cancel)
+                else if (messageJson.Type == RequestEventType.Call_Accept ||
+                         messageJson.Type == RequestEventType.Call_Reject ||
+                         messageJson.Type == RequestEventType.Call_Cancel ||
+                         messageJson.Type == RequestEventType.Call_End)
                 {
-                    socketMessage.Type = ResponseEventType.Call_Cancelled;
-                    socketMessage.Sender = messageJson.Sender;
-                    recievers = messageJson.Recievers;
-                    if (messageJson.Payload.Call == null || messageJson.Payload.Call.CallId == null)
-                    {
-                        throw new UIException("Informations can not be null.");
-                    }
-                    await _callService.CancelCallAsync((int)messageJson.Payload.Call.CallId);
-                }
-                else if (messageJson.Type == RequestEventType.Call_Accept)
-                {
-                    socketMessage.Type = ResponseEventType.Call_Accepted;
+                    var sfuToken = LiveKitHelper.GenerateToken(messageJson.Payload.Call.Id.ToString(), messageJson.Sender.Id.ToString(), messageJson.Sender.Name);
+                    // Metadata event olarak gönder, SFU stream otomatik yönetiliyor
                     socketMessage.Sender = messageJson.Sender;
                     socketMessage.Payload.Call = messageJson.Payload.Call;
+                    socketMessage.Payload.Call.SFUToken = sfuToken;
                     recievers = messageJson.Recievers;
-                    if (messageJson.Payload.Call == null || messageJson.Payload.Call.CallId == null)
+                    recievers.Add(messageJson.Sender.Id);
+
+                    switch (messageJson.Type)
                     {
-                        throw new UIException("Informations can not be null.");
+                        case RequestEventType.Call_Accept:
+                            socketMessage.Type = ResponseEventType.Call_Accepted;
+                            await _callService.AcceptCallAsync(messageJson.Payload.Call!.Id);
+                            break;
+                        case RequestEventType.Call_Reject:
+                            socketMessage.Type = ResponseEventType.Call_Rejected;
+                            await _callService.RejectCallAsync(messageJson.Payload.Call!.Id);
+                            break;
+                        case RequestEventType.Call_Cancel:
+                            socketMessage.Type = ResponseEventType.Call_Cancelled;
+                            await _callService.CancelCallAsync(messageJson.Payload.Call!.Id);
+                            break;
+                        case RequestEventType.Call_End:
+                            socketMessage.Type = ResponseEventType.Call_Ended;
+                            await _callService.EndCallAsync(messageJson.Payload.Call!.Id);
+                            break;
                     }
-                    await _callService.AcceptCallAsync((int)messageJson.Payload.Call.CallId);
-                }
-                else if (messageJson.Type == RequestEventType.Call_Reject)
-                {
-                    socketMessage.Type = ResponseEventType.Call_Rejected;
-                    socketMessage.Sender = messageJson.Sender;
-                    recievers = messageJson.Recievers;
-                    if (messageJson.Payload.Call == null || messageJson.Payload.Call.CallId == null)
-                    {
-                        throw new UIException("Informations can not be null.");
-                    }
-                    await _callService.RejectCallAsync((int)messageJson.Payload.Call.CallId);
-                }
-                else if (messageJson.Type == RequestEventType.Call_End)
-                {
-                    socketMessage.Type = ResponseEventType.Call_Ended;
-                    socketMessage.Sender = messageJson.Sender;
-                    recievers = messageJson.Recievers;
-                    if (messageJson.Payload.Call == null || messageJson.Payload.Call.CallId == null)
-                    {
-                        throw new UIException("Informations can not be null.");
-                    }
-                    await _callService.EndCallAsync((int)messageJson.Payload.Call.CallId);
-                }
-                else if (messageJson.Type == RequestEventType.Call_Ice)
-                {
-                    socketMessage.Type = ResponseEventType.Call_Ice;
-                    socketMessage.Sender = messageJson.Sender;
-                    socketMessage.Payload.Call = messageJson.Payload.Call;
-                    recievers = messageJson.Recievers;
                 }
                 else
                 {

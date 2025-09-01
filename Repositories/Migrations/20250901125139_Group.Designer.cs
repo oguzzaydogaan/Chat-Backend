@@ -12,8 +12,8 @@ using Repositories.Context;
 namespace Repositories.Migrations
 {
     [DbContext(typeof(RepositoryContext))]
-    [Migration("20250815114630_Initial-Create")]
-    partial class InitialCreate
+    [Migration("20250901125139_Group")]
+    partial class Group
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -24,6 +24,21 @@ namespace Repositories.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+            modelBuilder.Entity("CallUser", b =>
+                {
+                    b.Property<int>("CalleesId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("CallsReceivedId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("CalleesId", "CallsReceivedId");
+
+                    b.HasIndex("CallsReceivedId");
+
+                    b.ToTable("CallUser");
+                });
 
             modelBuilder.Entity("ChatUser", b =>
                 {
@@ -38,6 +53,39 @@ namespace Repositories.Migrations
                     b.HasIndex("UsersId");
 
                     b.ToTable("ChatUser");
+                });
+
+            modelBuilder.Entity("Repositories.Entities.Call", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AnswerType")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CallTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("CallerId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("DurationInSeconds")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("EndTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("StartTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CallerId");
+
+                    b.ToTable("Calls");
                 });
 
             modelBuilder.Entity("Repositories.Entities.Chat", b =>
@@ -164,6 +212,21 @@ namespace Repositories.Migrations
                     b.ToTable("Users");
                 });
 
+            modelBuilder.Entity("CallUser", b =>
+                {
+                    b.HasOne("Repositories.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("CalleesId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Repositories.Entities.Call", null)
+                        .WithMany()
+                        .HasForeignKey("CallsReceivedId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("ChatUser", b =>
                 {
                     b.HasOne("Repositories.Entities.Chat", null)
@@ -177,6 +240,17 @@ namespace Repositories.Migrations
                         .HasForeignKey("UsersId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Repositories.Entities.Call", b =>
+                {
+                    b.HasOne("Repositories.Entities.User", "Caller")
+                        .WithMany("CallsMade")
+                        .HasForeignKey("CallerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Caller");
                 });
 
             modelBuilder.Entity("Repositories.Entities.Message", b =>
@@ -219,6 +293,8 @@ namespace Repositories.Migrations
 
             modelBuilder.Entity("Repositories.Entities.User", b =>
                 {
+                    b.Navigation("CallsMade");
+
                     b.Navigation("Messages");
                 });
 #pragma warning restore 612, 618
