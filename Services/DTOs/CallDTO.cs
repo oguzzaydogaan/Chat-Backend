@@ -12,8 +12,7 @@ namespace Services.DTOs
         public DateTime EndTime { get; set; }
         public int DurationInSeconds { get; set; }
         public CallAnswerType AnswerType { get; set; }
-        public string? SFUToken { get; set; }
-        public string? SFURoom { get; set; }
+        public int ChatId { get; set; }
     }
 
     public class CreateCallReqDTO
@@ -21,5 +20,6 @@ namespace Services.DTOs
         public int CallerId { get; set; }
         public List<int> CalleesIds { get; set; } = new();
         public DateTime CallTime { get; set; }
+        public int ChatId { get; set; }
     }
 }

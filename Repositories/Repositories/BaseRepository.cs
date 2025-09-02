@@ -1,8 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Repositories.Entities;
 
 namespace Repositories.Repositories
 {
-    public abstract class BaseRepository<TEntity> where TEntity : class
+    public abstract class BaseRepository<TEntity> where TEntity : BaseEntity
     {
         protected DbContext _context;
         protected DbSet<TEntity> DbSet;

@@ -21,5 +21,10 @@ namespace Repositories.Repositories
         {
             return await DbSet.Include(c=>c.Caller).Include(c => c.Callees).Where(c=>(c.CallerId==userId || c.Callees.Any(u=>u.Id == userId)) && !(c.AnswerType == CallAnswerType.None || (c.AnswerType == CallAnswerType.Accepted && c.EndTime == DateTime.MinValue))).OrderByDescending(c=>c.CallTime).ToListAsync();
         }
+
+        public async Task<Call?> GetByIdWithCalleesAsync(int id)
+        {
+            return await DbSet.Include(c=>c.Callees).FirstAsync(c=>c.Id==id);
+        }
     }
 }

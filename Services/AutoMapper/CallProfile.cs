@@ -14,11 +14,7 @@ namespace Services.AutoMapper
                 var users = (List<User>)context.Items["Users"];
                 dest.Callees = users;
             });
-            CreateMap<Call, CallDTO>().AfterMap((src, dest, context) =>
-            {
-                var token = context.Items["SFUToken"].ToString();
-                dest.SFUToken = token;
-            });
+            CreateMap<Call, CallDTO>();
         }
     }
 }

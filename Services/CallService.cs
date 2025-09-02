@@ -27,34 +27,46 @@ namespace Services
             return call;
         }
 
-        public async Task CancelCallAsync(int id)
+        public async Task CancelCallAsync(int id, int calleeCount)
         {
-            var call = await _callRepository.GetByIdAsync(id) ?? throw new UIException("Call not found.");
-            call.AnswerType = CallAnswerType.Cancelled;
-            await _callRepository.SaveChangesAsync();
+            if (calleeCount == 1)
+            {
+                var call = await _callRepository.GetByIdAsync(id) ?? throw new UIException("Call not found.");
+                call.AnswerType = CallAnswerType.Cancelled;
+                await _callRepository.SaveChangesAsync();
+            }
         }
 
-        public async Task AcceptCallAsync(int id)
+        public async Task AcceptCallAsync(int id, int calleeCount)
         {
-            var call = await _callRepository.GetByIdAsync(id) ?? throw new UIException("Call not found.");
-            call.AnswerType = CallAnswerType.Accepted;
-            call.StartTime = DateTime.UtcNow;
-            await _callRepository.SaveChangesAsync();
+            if (calleeCount == 1)
+            {
+                var call = await _callRepository.GetByIdAsync(id) ?? throw new UIException("Call not found.");
+                call.AnswerType = CallAnswerType.Accepted;
+                call.StartTime = DateTime.UtcNow;
+                await _callRepository.SaveChangesAsync();
+            }
         }
 
-        public async Task RejectCallAsync(int id)
+        public async Task RejectCallAsync(int id, int calleeCount)
         {
-            var call = await _callRepository.GetByIdAsync(id) ?? throw new UIException("Call not found.");
-            call.AnswerType = CallAnswerType.Rejected;
-            await _callRepository.SaveChangesAsync();
+            if (calleeCount == 1)
+            {
+                var call = await _callRepository.GetByIdWithCalleesAsync(id) ?? throw new UIException("Call not found.");
+                call.AnswerType = CallAnswerType.Rejected;
+                await _callRepository.SaveChangesAsync();
+            }
         }
 
-        public async Task EndCallAsync(int id)
+        public async Task EndCallAsync(int id, int calleeCount)
         {
-            var call = await _callRepository.GetByIdAsync(id) ?? throw new UIException("Call not found.");
-            call.EndTime = DateTime.UtcNow;
-            call.DurationInSeconds = (int)(call.EndTime - call.StartTime).TotalSeconds;
-            await _callRepository.SaveChangesAsync();
+            if (calleeCount == 1)
+            {
+                var call = await _callRepository.GetByIdAsync(id) ?? throw new UIException("Call not found.");
+                call.EndTime = DateTime.UtcNow;
+                call.DurationInSeconds = (int)(call.EndTime - call.StartTime).TotalSeconds;
+                await _callRepository.SaveChangesAsync();
+            }
         }
 
         public async Task<(ResponseSocketDTO, ICollection<int>)?> CheckAndCloseActiveCallAsync(int userId)

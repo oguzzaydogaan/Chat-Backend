@@ -55,13 +55,6 @@ namespace Services.Helpers.WebSocket_Helpers
                 } while (!receiveResult.EndOfMessage);
                 if (receiveResult.CloseStatus.HasValue)
                 {
-                    var res = await _callService.CheckAndCloseActiveCallAsync(userId);
-                    if (res != null)
-                    {
-                        var json = JsonSerializer.Serialize(res.Value.Item1);
-                        var bytes = Encoding.UTF8.GetBytes(json);
-                        await SendMessageToUsersAsync(bytes, res.Value.Item2);
-                    }
                     break;
                 }
                 if (validTo < DateTime.UtcNow)
@@ -85,7 +78,7 @@ namespace Services.Helpers.WebSocket_Helpers
                 catch (JsonException ex)
                 {
                     _logger.LogError($"Websocket json error: {ex.Message}");
-                    await SendErrorAsync(webSocket,"Bad message format.");
+                    await SendErrorAsync(webSocket, "Bad message format.");
                 }
                 catch (Exception ex)
                 {
@@ -94,11 +87,12 @@ namespace Services.Helpers.WebSocket_Helpers
                 }
             }
         }
-        public async Task SendMessageToUsersAsync(byte[] bytes, ICollection<int> recievers)
+        public async Task SendMessageToUsersAsync(string json, ICollection<int> receivers)
         {
-            foreach (var reciever in recievers)
+            var bytes = Encoding.UTF8.GetBytes(json);
+            foreach (var receiver in receivers)
             {
-                _wsListManager.Clients.TryGetValue(reciever, out var webSocket);
+                _wsListManager.Clients.TryGetValue(receiver, out var webSocket);
                 if (webSocket != null)
                 {
                     if (webSocket.State == WebSocketState.Open)
@@ -109,6 +103,22 @@ namespace Services.Helpers.WebSocket_Helpers
                             true,
                             CancellationToken.None);
                     }
+                }
+            }
+        }
+        public async Task SendMessageToUserAsync(string json, int receiver)
+        {
+            var bytes = Encoding.UTF8.GetBytes(json);
+            _wsListManager.Clients.TryGetValue(receiver, out var webSocket);
+            if (webSocket != null)
+            {
+                if (webSocket.State == WebSocketState.Open)
+                {
+                    await webSocket.SendAsync(
+                        new ArraySegment<byte>(bytes),
+                        WebSocketMessageType.Text,
+                        true,
+                        CancellationToken.None);
                 }
             }
         }

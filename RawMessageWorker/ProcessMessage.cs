@@ -54,7 +54,7 @@ namespace RawMessageWorker
                     throw new ArgumentNullException("Message couldn't send");
                 }
                 ResponseSocketDTO socketMessage = new();
-                ICollection<int> recievers = [];
+                ICollection<int> receivers = [];
 
                 if (messageJson.Type == RequestEventType.Message_See)
                 {
@@ -83,7 +83,7 @@ namespace RawMessageWorker
                         throw new ArgumentNullException("Id cannot be null");
                     }
                     var chat = await _chatService.GetChatWithUsersAsync((int)messageJson.Payload.Id);
-                    recievers = chat.Users.Select(u => u.Id).ToList();
+                    receivers = chat.Users.Select(u => u.Id).ToList();
                 }
                 else if (messageJson.Type == RequestEventType.Message_Send)
                 {
@@ -93,12 +93,11 @@ namespace RawMessageWorker
                         Message = messageJson.Payload.Message,
                         Sender = messageJson.Sender
                     };
-                    var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(res));
-                    var send = _wsManager.SendMessageToUsersAsync(body, messageJson.Recievers);
+                    var send = _wsManager.SendMessageToUsersAsync(JsonSerializer.Serialize(res), messageJson.Receivers);
                     socketMessage.Type = ResponseEventType.Message_Saved;
                     socketMessage.Sender = messageJson.Sender;
                     var message = await _messageService.AddAsync(_mapper.Map<Message>(messageJson.Payload.Message));
-                    recievers = message.Chat!.Users.Select(u => u.Id).ToList();
+                    receivers = message.Chat!.Users.Select(u => u.Id).ToList();
                     socketMessage.Payload.Message = _mapper.Map<MessageWithSenderAndSeensDTO>(message);
                     socketMessage.Payload.Message.LocalId = messageJson.Payload.Message!.LocalId;
                     await send;
@@ -114,7 +113,7 @@ namespace RawMessageWorker
                     socketMessage.Type = ResponseEventType.Message_Deleted;
                     socketMessage.Sender = messageJson.Sender;
                     var message = await _messageService.SoftDeleteAsync(mid, messageJson.Sender.Id);
-                    recievers = message.Chat!.Users.Select(u => u.Id).ToList();
+                    receivers = message.Chat!.Users.Select(u => u.Id).ToList();
                     socketMessage.Payload.Message = _mapper.Map<MessageWithSenderAndSeensDTO>(message);
                 }
                 else if (messageJson.Type == RequestEventType.Chat_Create)
@@ -122,7 +121,7 @@ namespace RawMessageWorker
                     socketMessage.Type = ResponseEventType.Chat_Created;
                     socketMessage.Sender = messageJson.Sender;
                     var chat = await _chatService.AddAsync(messageJson.Payload.Chat, socketMessage.Sender);
-                    recievers = chat.Users.Select(u => u.Id).ToList();
+                    receivers = chat.Users.Select(u => u.Id).ToList();
                     socketMessage.Payload.Chat = _mapper.Map<ChatWithUsersDTO>(chat);
                 }
                 else if (messageJson.Type == RequestEventType.Chat_AddUser)
@@ -134,56 +133,60 @@ namespace RawMessageWorker
                         throw new ArgumentNullException("Informations cannot be null");
                     }
                     var res = await _chatService.AddUserAsync(messageJson.Payload.Message.ChatId, messageJson.Payload.Message.UserId, messageJson.Sender);
-                    recievers = res.Item1.Users.Select(u => u.Id).ToList();
+                    receivers = res.Item1.Users.Select(u => u.Id).ToList();
                     socketMessage.Payload.Message = _mapper.Map<MessageWithSenderAndSeensDTO>(res.Item2);
                     socketMessage.Payload.Chat = _mapper.Map<ChatWithUsersDTO>(res.Item1);
                 }
                 else if (messageJson.Type == RequestEventType.Call_Offer)
                 {
-                    socketMessage.Type = ResponseEventType.Call_Offered;
-                    socketMessage.Sender = messageJson.Sender;
-                    recievers = messageJson.Recievers;
-                    recievers.Add(messageJson.Sender.Id);
-
-
                     var call = await _callService.AddAsync(messageJson.Payload.CreateCall);
+                    var sfuToken = LiveKitHelper.GenerateToken(messageJson.Payload.CreateCall.ChatId.ToString(), messageJson.Sender.Id.ToString(), messageJson.Sender.Name);
 
-                    var sfuToken = LiveKitHelper.GenerateToken(call.Id.ToString(), messageJson.Sender.Id.ToString(), messageJson.Sender.Name);
+                    var res = new ResponseSocket_SFUToken(_mapper.Map<CallDTO>(call), sfuToken);
+                    res.Call.ChatId = messageJson.Payload.CreateCall.ChatId;
+                    var resJson = JsonSerializer.Serialize(res);
+                    await _wsManager.SendMessageToUserAsync(resJson, messageJson.Sender.Id);
 
-                    socketMessage.Payload.Call = _mapper.Map<CallDTO>(call, opt => opt.Items["SFUToken"] = sfuToken);
-                }
-                else if (messageJson.Type == RequestEventType.Call_Accept ||
-                         messageJson.Type == RequestEventType.Call_Reject ||
-                         messageJson.Type == RequestEventType.Call_Cancel ||
-                         messageJson.Type == RequestEventType.Call_End)
-                {
-                    var sfuToken = LiveKitHelper.GenerateToken(messageJson.Payload.Call.Id.ToString(), messageJson.Sender.Id.ToString(), messageJson.Sender.Name);
-                    // Metadata event olarak gönder, SFU stream otomatik yönetiliyor
+                    socketMessage.Type = ResponseEventType.Call_Offered;
+                    socketMessage.Payload.Call = _mapper.Map<CallDTO>(call);
+                    socketMessage.Payload.Call.ChatId = messageJson.Payload.CreateCall.ChatId;
                     socketMessage.Sender = messageJson.Sender;
-                    socketMessage.Payload.Call = messageJson.Payload.Call;
-                    socketMessage.Payload.Call.SFUToken = sfuToken;
-                    recievers = messageJson.Recievers;
-                    recievers.Add(messageJson.Sender.Id);
+                    receivers = messageJson.Receivers;
+                }
+                else if (messageJson.Type == RequestEventType.Call_Accept)
+                {
+                    var sfuToken = LiveKitHelper.GenerateToken(messageJson.Payload.Call.ChatId.ToString(), messageJson.Sender.Id.ToString(), messageJson.Sender.Name);
+                    var res = new ResponseSocket_SFUToken(messageJson.Payload.Call, sfuToken);
+                    var resJson = JsonSerializer.Serialize(res);
+                    await _wsManager.SendMessageToUserAsync(resJson, messageJson.Sender.Id);
 
+                    await _callService.AcceptCallAsync(messageJson.Payload.Call.Id, messageJson.Receivers.Count);
+                    socketMessage.Type = ResponseEventType.Call_Accepted;
+                    socketMessage.Payload.Call = messageJson.Payload.Call;
+                    socketMessage.Sender = messageJson.Sender;
+                    receivers = messageJson.Receivers;
+                }
+                else if (messageJson.Type == RequestEventType.Call_End || messageJson.Type == RequestEventType.Call_Cancel || messageJson.Type == RequestEventType.Call_Reject)
+                {
                     switch (messageJson.Type)
                     {
-                        case RequestEventType.Call_Accept:
-                            socketMessage.Type = ResponseEventType.Call_Accepted;
-                            await _callService.AcceptCallAsync(messageJson.Payload.Call!.Id);
+                        case RequestEventType.Call_Cancel:
+                            await _callService.CancelCallAsync(messageJson.Payload.Call.Id, messageJson.Receivers.Count);
+                            socketMessage.Type = ResponseEventType.Call_Cancelled;
                             break;
                         case RequestEventType.Call_Reject:
+                            await _callService.RejectCallAsync(messageJson.Payload.Call.Id, messageJson.Receivers.Count);
                             socketMessage.Type = ResponseEventType.Call_Rejected;
-                            await _callService.RejectCallAsync(messageJson.Payload.Call!.Id);
-                            break;
-                        case RequestEventType.Call_Cancel:
-                            socketMessage.Type = ResponseEventType.Call_Cancelled;
-                            await _callService.CancelCallAsync(messageJson.Payload.Call!.Id);
                             break;
                         case RequestEventType.Call_End:
+                            await _callService.EndCallAsync(messageJson.Payload.Call.Id, messageJson.Receivers.Count);
                             socketMessage.Type = ResponseEventType.Call_Ended;
-                            await _callService.EndCallAsync(messageJson.Payload.Call!.Id);
                             break;
                     }
+
+                    socketMessage.Payload.Call = messageJson.Payload.Call;
+                    socketMessage.Sender = messageJson.Sender;
+                    receivers = messageJson.Receivers;
                 }
                 else
                 {
@@ -191,8 +194,7 @@ namespace RawMessageWorker
                 }
 
                 var json = JsonSerializer.Serialize(socketMessage);
-                var bytes = Encoding.UTF8.GetBytes(json);
-                await _wsManager.SendMessageToUsersAsync(bytes, recievers);
+                await _wsManager.SendMessageToUsersAsync(json, receivers);
             }
             catch (ChatAlreadyExistException ex)
             {
