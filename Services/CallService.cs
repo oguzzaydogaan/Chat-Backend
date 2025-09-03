@@ -20,8 +20,8 @@ namespace Services
 
         public async Task<Call> AddAsync(CreateCallDTO dto)
         {
-            var caller = await _userRepository.GetByIdAsync(dto.CallerId) ?? throw new UsersNotFoundException();
-            var callee = await _userRepository.GetByIdAsync(dto.CalleeId) ?? throw new UsersNotFoundException();
+            _ = await _userRepository.GetByIdAsync(dto.CallerId) ?? throw new UsersNotFoundException();
+            _ = await _userRepository.GetByIdAsync(dto.CalleeId) ?? throw new UsersNotFoundException();
 
             return await _callRepository.AddAsync(_mapper.Map<Call>(dto));
         }
@@ -56,7 +56,7 @@ namespace Services
             await _callRepository.SaveChangesAsync();
         }
 
-        public async Task<(ResponseSocketDTO,ICollection<int>)?> CheckAndCloseActiveCallAsync(int userId)
+        public async Task<(ResponseSocketDTO, ICollection<int>)?> CheckAndCloseActiveCallAsync(int userId)
         {
             var call = await _callRepository.GetActiveByUserIdAsync(userId);
             if (call != null)
