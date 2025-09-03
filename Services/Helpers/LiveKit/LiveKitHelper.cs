@@ -4,8 +4,8 @@ namespace Services.Helpers.LiveKit
 {
     public static class LiveKitHelper
     {
-        private static readonly string ApiKey = "enachatlivekitkey";
-        private static readonly string ApiSecret = "izi-pizi-lemon-squeezy-oguz-celal-ankaraa";
+        private static readonly string ApiKey = "enachatlivekitkeyprod";
+        private static readonly string ApiSecret = "izi-pizi-lemon-squeezy-oguz-celal-ankaraa-prod";
 
         public static string GenerateToken(string roomName, string userId, string name)
         {
