@@ -10,6 +10,7 @@
         public DateTime EndTime { get; set; }
         public int DurationInSeconds { get; set; } = 0;
         public CallAnswerType AnswerType { get; set; } = CallAnswerType.None;
+        public int ChatId { get; set; }
     }
 
     public enum CallAnswerType
