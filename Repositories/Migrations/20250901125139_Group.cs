@@ -7,7 +7,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Repositories.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class Group : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -41,6 +41,30 @@ namespace Repositories.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Users", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Calls",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    CallerId = table.Column<int>(type: "integer", nullable: false),
+                    CallTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    StartTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    EndTime = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    DurationInSeconds = table.Column<int>(type: "integer", nullable: false),
+                    AnswerType = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Calls", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Calls_Users_CallerId",
+                        column: x => x.CallerId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -100,6 +124,30 @@ namespace Repositories.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "CallUser",
+                columns: table => new
+                {
+                    CalleesId = table.Column<int>(type: "integer", nullable: false),
+                    CallsReceivedId = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_CallUser", x => new { x.CalleesId, x.CallsReceivedId });
+                    table.ForeignKey(
+                        name: "FK_CallUser_Calls_CallsReceivedId",
+                        column: x => x.CallsReceivedId,
+                        principalTable: "Calls",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_CallUser_Users_CalleesId",
+                        column: x => x.CalleesId,
+                        principalTable: "Users",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "MessageReads",
                 columns: table => new
                 {
@@ -120,6 +168,16 @@ namespace Repositories.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Calls_CallerId",
+                table: "Calls",
+                column: "CallerId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CallUser_CallsReceivedId",
+                table: "CallUser",
+                column: "CallsReceivedId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ChatUser_UsersId",
@@ -146,10 +204,16 @@ namespace Repositories.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
+                name: "CallUser");
+
+            migrationBuilder.DropTable(
                 name: "ChatUser");
 
             migrationBuilder.DropTable(
                 name: "MessageReads");
+
+            migrationBuilder.DropTable(
+                name: "Calls");
 
             migrationBuilder.DropTable(
                 name: "Messages");

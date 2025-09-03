@@ -13,5 +13,19 @@ namespace Repositories.Context
         public DbSet<Message> Messages { get; set; }
         public DbSet<MessageRead> MessageReads { get; set; }
         public DbSet<Call> Calls { get; set; }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<Call>()
+                .HasOne(c => c.Caller)
+                .WithMany(u => u.CallsMade)
+                .HasForeignKey(c => c.CallerId);
+
+            modelBuilder.Entity<Call>()
+                .HasMany(c => c.Callees)
+                .WithMany(u => u.CallsReceived);
+        }
     }
 }

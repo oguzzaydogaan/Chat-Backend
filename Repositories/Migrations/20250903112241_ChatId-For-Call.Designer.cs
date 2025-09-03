@@ -12,8 +12,8 @@ using Repositories.Context;
 namespace Repositories.Migrations
 {
     [DbContext(typeof(RepositoryContext))]
-    [Migration("20250825072425_Call-History")]
-    partial class CallHistory
+    [Migration("20250903112241_ChatId-For-Call")]
+    partial class ChatIdForCall
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -24,6 +24,21 @@ namespace Repositories.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+            modelBuilder.Entity("CallUser", b =>
+                {
+                    b.Property<int>("CalleesId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("CallsReceivedId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("CalleesId", "CallsReceivedId");
+
+                    b.HasIndex("CallsReceivedId");
+
+                    b.ToTable("CallUser");
+                });
 
             modelBuilder.Entity("ChatUser", b =>
                 {
@@ -54,10 +69,10 @@ namespace Repositories.Migrations
                     b.Property<DateTime>("CallTime")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int>("CalleeId")
+                    b.Property<int>("CallerId")
                         .HasColumnType("integer");
 
-                    b.Property<int>("CallerId")
+                    b.Property<int>("ChatId")
                         .HasColumnType("integer");
 
                     b.Property<int>("DurationInSeconds")
@@ -70,8 +85,6 @@ namespace Repositories.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("CalleeId");
 
                     b.HasIndex("CallerId");
 
@@ -202,6 +215,21 @@ namespace Repositories.Migrations
                     b.ToTable("Users");
                 });
 
+            modelBuilder.Entity("CallUser", b =>
+                {
+                    b.HasOne("Repositories.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("CalleesId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Repositories.Entities.Call", null)
+                        .WithMany()
+                        .HasForeignKey("CallsReceivedId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("ChatUser", b =>
                 {
                     b.HasOne("Repositories.Entities.Chat", null)
@@ -219,19 +247,11 @@ namespace Repositories.Migrations
 
             modelBuilder.Entity("Repositories.Entities.Call", b =>
                 {
-                    b.HasOne("Repositories.Entities.User", "Callee")
-                        .WithMany()
-                        .HasForeignKey("CalleeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("Repositories.Entities.User", "Caller")
-                        .WithMany()
+                        .WithMany("CallsMade")
                         .HasForeignKey("CallerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("Callee");
 
                     b.Navigation("Caller");
                 });
@@ -276,6 +296,8 @@ namespace Repositories.Migrations
 
             modelBuilder.Entity("Repositories.Entities.User", b =>
                 {
+                    b.Navigation("CallsMade");
+
                     b.Navigation("Messages");
                 });
 #pragma warning restore 612, 618

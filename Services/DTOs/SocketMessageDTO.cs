@@ -5,7 +5,7 @@
         public RequestEventType Type { get; set; }
         public RequestPayloadDTO Payload { get; set; } = new();
         public UserDTO Sender { get; set; } = new();
-        public ICollection<int> Recievers { get; set; } = new List<int>();
+        public ICollection<int> Receivers { get; set; } = new List<int>();
     }
 
     public class ResponseSocket_ForMessageDTO
@@ -13,6 +13,13 @@
         public ResponseEventType Type { get; set; } = ResponseEventType.Message_Received;
         public CreateMessageRequestDTO? Message { get; set; }
         public UserDTO? Sender { get; set; }
+    }
+
+    public class ResponseSocket_SFUToken(CallDTO call, string token)
+    {
+        public ResponseEventType Type { get; set; } = ResponseEventType.Call_SFUTokenReceived;
+        public CallDTO Call { get; set; } = call;
+        public string Token { get; set; } = token;
     }
 
     public class ResponseSocketDTO
@@ -49,6 +56,7 @@
         Call_Accepted,
         Call_Rejected,
         Call_Ended,
+        Call_SFUTokenReceived,
         Call_Ice,
         Error
     }
