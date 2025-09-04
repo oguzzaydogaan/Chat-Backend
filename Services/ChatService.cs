@@ -67,17 +67,17 @@ namespace Services
         public async Task<ChatWithMessagesAndUsersDTO> GetChatWithMessagesAsync(int chatId, int userId)
         {
             var chat = await _chatRepository.GetChatWithMessagesAndUsersAsync(chatId);
-            chat.Messages = chat.Messages.OrderBy(m => m.Time).ToList();
 
             if (!chat.Users.Any(u => u.Id == userId))
             {
                 throw new UserNotMemberOfChatException();
             }
-
             if (chat.Users.Count == 2)
             {
                 chat.Name = chat.Users.FirstOrDefault(u => u.Id != userId)?.Name ?? throw new UIException("Other user not found");
             }
+
+            chat.Messages = chat.Messages.OrderBy(m => m.Time).ToList();
 
             var dto = _mapper.Map<ChatWithMessagesAndUsersDTO>(chat);
             return dto;
@@ -105,7 +105,6 @@ namespace Services
             if (user == null)
             {
                 throw new UsersNotFoundException();
-
             }
 
             chat.Users.Add(user);

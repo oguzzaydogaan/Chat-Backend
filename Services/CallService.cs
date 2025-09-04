@@ -10,21 +10,28 @@ namespace Services
     {
         private readonly CallRepository _callRepository;
         private readonly UserRepository _userRepository;
+        private readonly ChatRepository _chatRepository;
 
-        public CallService(CallRepository callRepository, UserRepository userRepository, IMapper mapper)
+        public CallService(CallRepository callRepository, UserRepository userRepository, ChatRepository chatRepository, IMapper mapper)
         : base(mapper, callRepository)
         {
             _callRepository = callRepository;
             _userRepository = userRepository;
+            _chatRepository = chatRepository;
         }
 
-        public async Task<Call> AddAsync(CreateCallReqDTO dto)
+        public async Task<CallDTO> AddAsync(CreateCallReqDTO dto)
         {
-            var users = await _userRepository.GetByListOfIdsAsync(dto.CalleesIds);
+            var chat = await _chatRepository.GetChatWithUsersAsync(dto.ChatId);
+            var caller = chat.Users.First(u => u.Id == dto.CallerId);
+            var users = chat.Users
+                            .Where(u => dto.CalleesIds.Contains(u.Id))
+                            .ToList();
             var call = _mapper.Map<Call>(dto, opt => opt.Items["Users"] = users);
-            call.Caller = await _userRepository.GetByIdAsync(call.CallerId);
+            call.Chat = chat;
+            call.Caller = caller;
             await _callRepository.AddAsync(call);
-            return call;
+            return _mapper.Map<CallDTO>(call);
         }
 
         public async Task CancelCallAsync(int id, int calleeCount)
@@ -33,7 +40,7 @@ namespace Services
             {
                 var call = await _callRepository.GetByIdAsync(id) ?? throw new UIException("Call not found.");
                 call.AnswerType = CallAnswerType.Cancelled;
-                await _callRepository.SaveChangesAsync();
+                await _callRepository.UpdateAsync(call);
             }
         }
 
