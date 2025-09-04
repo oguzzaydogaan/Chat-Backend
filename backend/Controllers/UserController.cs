@@ -139,7 +139,7 @@ namespace backend.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Error retrieving user's chats: {ex.Message}");
+                _logger.LogError($"Error retrieving user's calls: {ex.Message}");
                 return StatusCode(500, "Something went wrong on the server. Please try again later.");
             }
         }

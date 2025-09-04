@@ -6,7 +6,6 @@ using Services;
 using Services.DTOs;
 using Services.Helpers.LiveKit;
 using Services.Helpers.WebSocket_Helpers;
-using System.Text;
 using System.Text.Json;
 
 namespace RawMessageWorker
@@ -142,20 +141,18 @@ namespace RawMessageWorker
                     var call = await _callService.AddAsync(messageJson.Payload.CreateCall);
                     var sfuToken = LiveKitHelper.GenerateToken(messageJson.Payload.CreateCall.ChatId.ToString(), messageJson.Sender.Id.ToString(), messageJson.Sender.Name);
 
-                    var res = new ResponseSocket_SFUToken(_mapper.Map<CallDTO>(call), sfuToken);
-                    res.Call.ChatId = messageJson.Payload.CreateCall.ChatId;
+                    var res = new ResponseSocket_SFUToken(call, sfuToken);
                     var resJson = JsonSerializer.Serialize(res);
                     await _wsManager.SendMessageToUserAsync(resJson, messageJson.Sender.Id);
 
                     socketMessage.Type = ResponseEventType.Call_Offered;
-                    socketMessage.Payload.Call = _mapper.Map<CallDTO>(call);
-                    socketMessage.Payload.Call.ChatId = messageJson.Payload.CreateCall.ChatId;
+                    socketMessage.Payload.Call = call;
                     socketMessage.Sender = messageJson.Sender;
                     receivers = messageJson.Receivers;
                 }
                 else if (messageJson.Type == RequestEventType.Call_Accept)
                 {
-                    var sfuToken = LiveKitHelper.GenerateToken(messageJson.Payload.Call.ChatId.ToString(), messageJson.Sender.Id.ToString(), messageJson.Sender.Name);
+                    var sfuToken = LiveKitHelper.GenerateToken(messageJson.Payload.Call.Chat.Id.ToString(), messageJson.Sender.Id.ToString(), messageJson.Sender.Name);
                     var res = new ResponseSocket_SFUToken(messageJson.Payload.Call, sfuToken);
                     var resJson = JsonSerializer.Serialize(res);
                     await _wsManager.SendMessageToUserAsync(resJson, messageJson.Sender.Id);
