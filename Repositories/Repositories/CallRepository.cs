@@ -18,7 +18,7 @@ namespace Repositories.Repositories
 
         public async Task<List<Call>> GetNotActivesByUserIdAsync(int userId)
         {
-            return await DbSet.Include(c=>c.Callees).Include(c=>c.Caller).Where(c => c.Callees.Count == 1 && (c.CallerId == userId || c.Callees.Any(u => u.Id == userId)) && (c.AnswerType == CallAnswerType.Cancelled || c.AnswerType == CallAnswerType.Rejected || (c.AnswerType == CallAnswerType.Accepted && c.EndTime != DateTime.MinValue))).ToListAsync();
+            return await DbSet.Include(c=>c.Callees).Include(c=>c.Caller).Include(c=>c.Chat).Where(c => c.Callees.Count == 1 && (c.CallerId == userId || c.Callees.Any(u => u.Id == userId)) && (c.AnswerType == CallAnswerType.Cancelled || c.AnswerType == CallAnswerType.Rejected || (c.AnswerType == CallAnswerType.Accepted && c.EndTime != DateTime.MinValue))).OrderByDescending(c=>c.CallTime).ToListAsync();
         }
 
         public async Task<Call?> GetByIdWithCalleesAsync(int id)
